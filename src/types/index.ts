@@ -2,7 +2,29 @@ export type Department = 'Reception' | 'Housekeeping' | 'Maintenance' | 'Managem
 
 export type Priority = 'Low' | 'Normal' | 'High' | 'Urgent' | 'Critical';
 
-export type TaskStatus = 'Open' | 'Dispatched' | 'In Progress' | 'Escalated' | 'Resolved';
+export type TaskStatus =
+  | 'Open'
+  | 'Dispatched'
+  | 'In Progress'
+  | 'Completion Pending Confirmation'
+  | 'Escalated'
+  | 'Resolved'
+  | 'Rejected';
+
+// 10-Stage Reliable Task Lifecycle
+export type LifecycleStage =
+  | 'REQUEST_RECEIVED'
+  | 'ANALYZING'
+  | 'TASK_CREATED'
+  | 'ASSIGNED'
+  | 'DELIVERY_PENDING'
+  | 'DELIVERED'
+  | 'ACCEPTED'
+  | 'IN_PROGRESS'
+  | 'COMPLETION_PENDING_CONFIRMATION'
+  | 'RESOLVED'
+  | 'ESCALATED'
+  | 'REJECTED';
 
 export type DeliveryState =
   | 'PENDING_DELIVERY'
@@ -11,7 +33,8 @@ export type DeliveryState =
   | 'IN_PROGRESS'
   | 'AWAITING_HUMAN_CONFIRMATION'
   | 'COMPLETED'
-  | 'DELIVERY_FAILED';
+  | 'DELIVERY_FAILED'
+  | 'LOCAL_MESH';
 
 // Backward compatibility aliases
 export type Status = 'Open' | 'In progress' | 'Resolved' | 'Escalated';
@@ -41,6 +64,7 @@ export type NavTab =
   | 'overview'
   | 'requests'
   | 'tasks'
+  | 'team-chat'
   | 'switch'
   | 'agents'
   | 'intelligence'
@@ -51,14 +75,41 @@ export type NavTab =
   | 'dept-housekeeping'
   | 'dept-maintenance';
 
-export type MessageSourceType = 'LIVE_AGENT' | 'SWITCH_PROTOCOL' | 'DEMO_SEED';
+export type MessageSourceType =
+  | 'LIVE_STAFF'
+  | 'LIVE_AGENT'
+  | 'SWITCH_PROTOCOL'
+  | 'DEMO_WORKFLOW'
+  | 'DEMO_SEED';
+
+export type ParticipantType = 'HUMAN' | 'AI_AGENT' | 'SYSTEM';
+
+export interface ChatParticipant {
+  id: string;
+  name: string;
+  role: string;
+  type: ParticipantType;
+  department: Department;
+  avatar: string;
+  status: 'online' | 'busy' | 'offline';
+  isTyping?: boolean;
+  avatarBg?: string;
+}
 
 export interface TaskAuditEntry {
   id: string;
   timestamp: number;
   actor: string;
   actorRole: string;
-  action: 'CREATED' | 'ROUTED' | 'DISPATCHED' | 'ACCEPTED' | 'ESCALATED' | 'HUMAN_VERIFIED' | 'NOTE_ADDED';
+  action:
+    | 'CREATED'
+    | 'ROUTED'
+    | 'DISPATCHED'
+    | 'DELIVERY_CONFIRMED'
+    | 'ACCEPTED'
+    | 'ESCALATED'
+    | 'HUMAN_VERIFIED'
+    | 'NOTE_ADDED';
   note: string;
 }
 
@@ -72,6 +123,7 @@ export interface Task {
   assignedAgent: string;
   priority: Priority;
   status: TaskStatus;
+  lifecycleStage?: LifecycleStage;
   deliveryStatus?: DeliveryState;
   createdAt: number; // timestamp
   slaDeadline: number; // timestamp
@@ -134,22 +186,25 @@ export interface SwitchMessage {
   id: string;
   sender: string;
   avatarRole: string;
+  senderType?: ParticipantType;
   department?: Department;
   content: string;
   badge?: 'DISPATCHED' | 'ACKNOWLEDGED' | 'SLA ACTIVE' | 'ESCALATED' | 'VERIFIED' | 'INFO' | 'ALERT';
   timestamp: string;
   taskId?: string;
+  referencedTaskIds?: string[];
   room?: string;
+  channel?: string;
   sourceType: MessageSourceType;
-  deliveryState?: 'DELIVERED' | 'PENDING' | 'FAILED' | 'LOCAL_MESH';
+  deliveryState?: 'DELIVERED' | 'PENDING' | 'FAILED' | 'LOCAL_MESH' | 'SENDING' | 'ACKNOWLEDGED';
   switchPayload?: SwitchProtocolPayload;
 }
 
 export interface SwitchConfig {
-  status: 'NOT_CONFIGURED' | 'DISCONNECTED' | 'CONNECTED';
+  status: 'NOT_CONFIGURED' | 'DISCONNECTED' | 'CONNECTED' | 'CONNECTION_FAILED';
   roomWebhookUrl: string;
   roomId: string;
-  apiKey: string;
+  apiKey: string; // Redacted when sent over wire
   channelTarget: string;
   lastTestedAt?: string;
   lastTestStatus?: 'SUCCESS' | 'FAILED' | 'NOT_TESTED';

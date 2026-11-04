@@ -7,6 +7,7 @@ import { SwitchOpsRoom } from './components/SwitchOpsRoom';
 import { AgentManagementView } from './components/AgentManagementView';
 import { ManagementAnalytics } from './components/ManagementAnalytics';
 import { SettingsView } from './components/SettingsView';
+import { TeamChatRoom } from './components/TeamChatRoom';
 import { IntakeModal } from './components/IntakeModal';
 import { HumanVerificationModal } from './components/HumanVerificationModal';
 import { TaskDetailDrawer } from './components/TaskDetailDrawer';
@@ -116,6 +117,51 @@ export default function App() {
 
   useEffect(() => {
     refreshAllState();
+
+    // Real-Time EventStream Listener for Live Multi-Agent and Staff Sync
+    let eventSource: EventSource | null = null;
+    const connect = () => {
+      eventSource = new EventSource('/api/chat/stream');
+
+      eventSource.addEventListener('task:created', (e) => {
+        try {
+          const newTask: Task = JSON.parse(e.data);
+          setTasks((prev) => [newTask, ...prev.filter((t) => t.id !== newTask.id)]);
+        } catch (err) {}
+      });
+
+      eventSource.addEventListener('task:updated', (e) => {
+        try {
+          const updated: Task = JSON.parse(e.data);
+          setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+        } catch (err) {}
+      });
+
+      eventSource.addEventListener('chat:message', (e) => {
+        try {
+          const msg: SwitchMessage = JSON.parse(e.data);
+          setSwitchMessages((prev) => {
+            if (prev.some((m) => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+        } catch (err) {}
+      });
+
+      eventSource.addEventListener('database:reset', () => {
+        refreshAllState();
+      });
+
+      eventSource.onerror = () => {
+        eventSource?.close();
+        setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+
+    return () => {
+      eventSource?.close();
+    };
   }, [refreshAllState]);
 
   // Refresh Switch config
@@ -709,6 +755,16 @@ export default function App() {
               onRequestCentralDecision={(t) => setDecisionTask(t)}
             />
           </div>
+        )}
+
+        {/* Real-Time Team Collaboration Room (Human Staff & Specialized AI Agents) */}
+        {activeTab === 'team-chat' && (
+          <TeamChatRoom
+            tasks={tasks}
+            onRequestVerification={(t) => setVerifyingTask(t)}
+            onSelectTask={(t) => setSelectedTask(t)}
+            showToast={showToast}
+          />
         )}
 
         {/* Section 4: Switch Operations Room */}

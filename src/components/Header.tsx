@@ -13,6 +13,7 @@ import {
   Inbox,
   ClipboardList,
   Home,
+  MessageSquare,
 } from 'lucide-react';
 import { SwitchConfig, NavTab } from '../types';
 
@@ -125,6 +126,19 @@ export const Header: React.FC<HeaderProps> = ({
                 {openTaskCount}
               </span>
             )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('team-chat')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'team-chat'
+                ? 'bg-zinc-800 text-amber-300 font-semibold shadow-xs border border-zinc-700/60'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+            <span>Team Chat</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           </button>
 
           <button
@@ -258,6 +272,7 @@ export const Header: React.FC<HeaderProps> = ({
           { id: 'overview' as NavTab, label: 'Overview' },
           { id: 'requests' as NavTab, label: 'Requests' },
           { id: 'tasks' as NavTab, label: `Tasks (${openTaskCount})` },
+          { id: 'team-chat' as NavTab, label: 'Team Chat' },
           { id: 'switch' as NavTab, label: 'Switch' },
           { id: 'agents' as NavTab, label: 'Agents' },
           { id: 'intelligence' as NavTab, label: 'Intelligence' },

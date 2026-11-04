@@ -2,7 +2,7 @@
 
 > **"Every Guest Request. Every Department. One AI-Powered Team."**
 
-Hotel Operations AI is an autonomous, multi-agent operations coordination platform built for modern luxury hotels. Instead of isolated chatbots or disconnected departmental ticketing queues, it unifies **Reception**, **Housekeeping**, **Maintenance**, and **Management** into a single collaborative ecosystem powered by Google Gemini and connected through **Switch** (by SandboxAQ).
+Hotel Operations AI is an autonomous, multi-agent operations coordination platform built for modern luxury hotels. Instead of isolated chatbots or disconnected departmental ticketing queues, it unifies **Reception**, **Housekeeping**, **Maintenance**, and **Management** into a single collaborative ecosystem powered by Google Gemini and connected through **Switch** (by SandboxAQ) with real-time human-agent collaboration.
 
 ---
 
@@ -11,18 +11,21 @@ Hotel Operations AI is an autonomous, multi-agent operations coordination platfo
 Hotel operations suffer from fragmentation: guest inquiries received via telephone, WhatsApp, or concierge desks frequently contain multi-layered issues that cross organizational boundaries. When a guest mentions an air conditioning failure alongside a request for extra towels and a late checkout inquiry, traditional software either loses secondary requests or creates chaotic manual phone tag.
 
 **Hotel Operations AI solves this by introducing:**
-1. **Intelligent Decomposition Engine:** Analyzes informal, multi-problem guest communications and breaks them into independent, department-owned tasks with target SLAs and explicit dependency ordering.
-2. **Missing-Room Safeguard:** Strictly refuses to invent or hallucinate default room numbers when omitted by the guest, prompting the Reception Agent to request immediate clarification.
-3. **Specialized Multi-Agent Team:** 5 independent agents (Central Operations AI, Reception Agent, Housekeeping Agent, Maintenance Agent, Management Agent) with distinct domain protocols and defined autonomy clearance.
-4. **Genuine Switch Integration:** Multi-agent collaboration room connecting AI teammates and human staff through SandboxAQ's Switch protocol, with real HTTP webhook dispatch and verifiable delivery states.
-5. **Human-in-the-Loop Completion Gate (Principle #8):** Physical tasks cannot be marked `Resolved` by AI; an authorized employee must confirm execution with their badge/name and completion notes.
-6. **Durable File-Backed Persistence:** Persistent JSON database (`/data/hotel_operations_db.json`) preserving task states, immutable audit trails, and Switch event logs across browser refreshes.
+1. **Interactive Real-Time Team Collaboration Room:** A genuine shared collaboration workspace where human hotel teammates (Front Desk, Duty Manager, Engineers, Housekeeping Leads) and specialized AI Agents communicate, delegate tasks, and solve operational problems in real time over WebSockets and Server-Sent Events.
+2. **Intelligent Decomposition Engine:** Analyzes informal, multi-problem guest communications and breaks them into independent, department-owned tasks with target SLAs and explicit dependency ordering.
+3. **Missing-Room Safeguard:** Strictly refuses to invent or hallucinate default room numbers when omitted by the guest, prompting the Reception Agent to request immediate clarification.
+4. **Specialized Multi-Agent Team:** 5 independent agents (Central Operations AI, Reception Agent, Housekeeping Agent, Maintenance Agent, Management Agent) with distinct domain protocols and defined autonomy clearance.
+5. **Room 204 End-to-End Operational Workflow:** Demonstrates a real guest request (AC not working + extra towels) decomposing into tasks, dispatching to technicians, updating progress in chat, and awaiting human sign-off.
+6. **10-Stage Reliable Task Lifecycle:** Tracks cases from `REQUEST_RECEIVED` through `COMPLETION_PENDING_CONFIRMATION` to authorized `RESOLVED`.
+7. **Human-in-the-Loop Completion Gate (Principle #8):** Physical tasks cannot be marked `Resolved` by AI; an authorized employee must confirm execution with their badge/name and completion notes.
+8. **Genuine Switch Integration:** Multi-agent collaboration room connecting AI teammates and human staff through SandboxAQ's Switch protocol, with real HTTP webhook dispatch and verifiable delivery states.
+9. **Durable File-Backed Persistence:** Atomic JSON database (`/data/hotel_operations_db.json`) preserving task states, immutable audit trails, and team chat logs across browser refreshes.
 
 ---
 
 ## 2. Core Architecture
 
-The platform is built as a production-grade full-stack TypeScript application running on Express and React 19 with Vite.
+The platform is built as a production-grade full-stack TypeScript application running on Express and React 19 with Vite, WebSockets, and Server-Sent Events.
 
 ```
                       +-----------------------------------+
@@ -56,8 +59,9 @@ The platform is built as a production-grade full-stack TypeScript application ru
                                  |
                                  v
                +-----------------------------------+
-               |      SandboxAQ Switch Room        |
-               | (Real Webhook / Local Agent Mesh) |
+               | Real-Time Team Collaboration Room |
+               | (WebSockets + SSE + Switch Mesh)  |
+               | [Human Staff <---> AI Agents]     |
                +-----------------+-----------------+
                                  |
                                  v
@@ -74,23 +78,77 @@ The platform is built as a production-grade full-stack TypeScript application ru
 
 ---
 
-## 3. The 7 Application Sections
+## 3. Real-Time Team Collaboration Room
 
-The UI is designed according to Linear and Stripe-tier SaaS standards, completely avoiding decorative gradients, uninformative pill badges, or simulated metrics:
+The collaboration room provides an authentic operations space where human staff and AI teammates converse:
+
+### Active Roster
+- **Human Teammates:**
+  - *Elena Rostova* (Front Desk Lead)
+  - *Marcus Vance* (Executive Duty Manager)
+  - *Carlos Mendez* (Chief Plant Engineer)
+  - *Maria Santos* (Head of Housekeeping)
+- **Specialized AI Agents:**
+  - *Central Operations AI* (Orchestrator & GM Brain)
+  - *Reception Agent* (Front Office Intelligence)
+  - *Housekeeping Agent* (Linen & Cleanliness Dispatch)
+  - *Maintenance Agent* (Physical Plant & HVAC Diagnostics)
+  - *Management Agent* (Executive Escalations & Recovery)
+
+### Teammate Features
+- **Sender Switcher:** Choose who to post as (Elena, Marcus, Carlos, Maria, or Staff Member).
+- **Autonomous Intent Detection:** When staff post operational requests (e.g. *"Room 204 needs extra towels and the AC is not working"*), Central Operations AI immediately decomposes the request into real tasks, allocates SLAs, and dispatches the relevant agents.
+- **Departmental Channels:** `#operations-general`, `#reception-frontdesk`, `#engineering-maintenance`, `#housekeeping-turnover`, `#management-escalations`.
+- **Contextual Task Chips:** Embedded task pills (e.g. `[CAS-8201] Suite 204`) link directly to the task inspector and allow one-click human completion verification.
+- **Typing Indicators:** Real-time feedback when AI agents or teammates are analyzing requests.
+- **Delivery States:** Transparent message states (`DELIVERED`, `ACKNOWLEDGED`).
+
+---
+
+## 4. The 10-Stage Task Lifecycle
+
+Tasks strictly progress through an auditable lifecycle:
+
+1. `REQUEST_RECEIVED` — Guest inquiry or teammate report logged.
+2. `ANALYZING` — Central Operations AI analyzes intent and evaluates missing information.
+3. `TASK_CREATED` — Individual operational task recorded with case reference.
+4. `ASSIGNED` — Allocated to designated departmental agent.
+5. `DELIVERY_PENDING` — Webhook or internal mesh dispatch queued.
+6. `DELIVERED` — Delivery confirmed at the department queue.
+7. `ACCEPTED` — Assigned agent acknowledges and dispatches physical staff.
+8. `IN_PROGRESS` — Staff en route or active on-site with SLA timer running.
+9. `COMPLETION_PENDING_CONFIRMATION` — Physical work completed; holds here pending human verification.
+10. `RESOLVED` — Authorized human staff enters badge ID and signs off on resolution.
+
+---
+
+## 5. Security & Data Integrity
+
+- **Secret Redaction:** Gemini API keys and Switch bearer tokens are redacted (`••••••••`) from all client-facing API responses.
+- **SSRF Protection:** Switch room webhook URLs are validated against private IP blocks (127.0.0.1, 10.x, 192.168.x, 172.16-31.x) and cloud metadata services (169.254.169.254).
+- **Atomic File Writes:** Database writes write to a temporary file (`.tmp`) before atomic rename, preventing file corruption under concurrent operations.
+- **Mandatory Staff Sign-Off:** Task verification requires explicit `staffName` and `badgeId` parameters.
+
+---
+
+## 6. The 8 Application Sections
+
+The UI is designed according to Linear and Stripe-tier SaaS standards:
 
 | Section | Route Key | Purpose |
 |---|---|---|
 | **1. Executive Overview** | `overview` | High-level property health, active cases counter, verified SLA compliance percentage, department workload distribution, and live risk radar. |
 | **2. Guest Requests** | `requests` | Intelligent request decomposition intake, missing-room safeguard alert banner with Reception prompt, interactive sample scenario buttons, and auditable requests ledger. |
 | **3. Operations Task Center** | `tasks` | Linear-style task grid with live 10-second SLA countdowns, department filtering, task detail drawer, and the Human Completion Verification sign-off modal. |
-| **4. Switch Operations Room** | `switch` | Multi-agent collaboration workspace displaying real-time agent dialogues, delivery status badges (`DELIVERED`, `LOCAL_MESH`), source filtering (`LIVE_AGENT` vs `DEMO_SEED`), and live event dispatching. |
-| **5. AI Agent Management** | `agents` | Detailed inspection cards for each of the 5 agents, showcasing active case loads, response velocity, autonomy level (`Full Delegated Authority`, `Supervisor Review Required`, `Executive Clearance Only`), and interactive domain protocol triggers. |
-| **6. Management Intelligence** | `intelligence` | Real-time analytics computed strictly from server state, separating verified human-completed metrics from active estimates. |
-| **7. Settings & Integrations** | `settings` | Live Gemini engine status, Switch room webhook configuration with real HTTP probe ping button, honest status indicator (`CONNECTED`, `DISCONNECTED`, `NOT_CONFIGURED`), and database reset controls. |
+| **4. Team Chat** | `team-chat` | **The Star Feature:** Real-time team collaboration room connecting human staff and AI agents with live WebSockets, autonomous coordination, and the Room 204 live workflow demo. |
+| **5. Switch Operations Room** | `switch` | Multi-agent collaboration workspace displaying real-time agent dialogues, delivery status badges (`DELIVERED`, `LOCAL_MESH`), source filtering (`LIVE_AGENT` vs `DEMO_SEED`), and live event dispatching. |
+| **6. AI Agent Management** | `agents` | Detailed inspection cards for each of the 5 agents, showcasing active case loads, response velocity, autonomy level (`Full Delegated Authority`, `Supervisor Review Required`, `Executive Clearance Only`), and interactive domain protocol triggers. |
+| **7. Management Intelligence** | `intelligence` | Real-time analytics computed strictly from server state, separating verified human-completed metrics from active estimates. |
+| **8. Settings & Integrations** | `settings` | Live Gemini engine status, Switch room webhook configuration with real HTTP probe ping button, honest status indicator (`CONNECTED`, `DISCONNECTED`, `NOT_CONFIGURED`), and database reset controls. |
 
 ---
 
-## 4. Switch Integration Protocol
+## 7. Switch Integration Protocol
 
 SandboxAQ's Switch enables autonomous agents to collaborate within shared team spaces ("Switch Rooms"). Hotel Operations AI implements both a local high-performance agent mesh and a real HTTP webhook dispatcher.
 
@@ -99,6 +157,7 @@ When an event occurs (e.g. `TASK_CREATED`, `SLA_ACTIVE`, `ESCALATED`, or `HUMAN_
 
 ```json
 {
+  "protocol": "switch.v1",
   "roomId": "hotel-operations-room",
   "channel": "#hotel-ops-central",
   "sender": {
@@ -117,61 +176,8 @@ When an event occurs (e.g. `TASK_CREATED`, `SLA_ACTIVE`, `ESCALATED`, or `HUMAN_
 The platform enforces transparency and **never falsely claims an external connection exists**:
 - `NOT_CONFIGURED`: Default state when no external room webhook URL is provided. Operates on local agent mesh.
 - `DISCONNECTED`: A webhook URL is configured but network connectivity failed or returned a non-2xx status code.
+- `CONNECTION_FAILED`: Network timeout, DNS failure, or connection refused during probe.
 - `CONNECTED`: Verified only after an actual HTTP POST request to the Switch room succeeds with HTTP 200 OK.
-
----
-
-## 5. Departmental AI Agents & Autonomy
-
-| Agent Name | Avatar | Department | Autonomy Clearance | Specialty & Domain Protocols |
-|---|---|---|---|---|
-| **Central Operations AI** | `CO` | Management | Full Delegated Authority | Autonomous orchestration, cross-department routing, SLA enforcement (`SLA_ENFORCER_V2`, `DEPENDENCY_RESOLVER`). |
-| **Reception Agent** | `RX` | Reception | Full Delegated Authority | Front office, VIP check-in, room key lock sync, folio dispute mediation (`RFID_MORTISE_SYNC`, `FOLIO_DISPUTE_GUARD`). |
-| **Housekeeping Agent** | `HK` | Housekeeping | Supervisor Review Required | Room cleanliness, turndown scheduling, linen replenishment (`TURNDOWN_LOAD_BALANCER`, `LINEN_BUFFER_MONITOR`). |
-| **Maintenance Agent** | `MT` | Maintenance | Full Delegated Authority | Chilled-water HVAC, digital plumbing diagnostics, electrical failover (`HVAC_CHILLED_WATER_GUARD`, `PLUMBING_ISOLATION_NET`). |
-| **Management Agent** | `GM` | Management | Executive Clearance Only | VIP service recovery, high-impact escalations, duty manager coordination (`SERVICE_RECOVERY_PROTOCOL`). |
-
----
-
-## 6. Operating Principle #8: Human-in-the-Loop Sign-off
-
-Artificial intelligence in hospitality must never replace human verification of physical reality:
-- When a task reaches completion in the physical world (e.g. an AC compressor is repaired or towels are placed in a bathroom), it transitions to `Awaiting Human Confirmation`.
-- The task **remains active on the ledger** until an authorized human employee submits:
-  1. Staff Member Name / ID Badge.
-  2. In-Suite Verification Checklist confirmation.
-  3. Physical resolution notes.
-- Only then is the task moved to `Resolved`, timestamped, and recorded in the permanent audit trail.
-
----
-
-## 7. API Reference
-
-The backend exposes the following REST endpoints on `http://localhost:3000`:
-
-### Core Operations
-- `GET /api/health` — Returns system diagnostics, API key status, persistence engine stats, and Switch connection state.
-- `GET /api/tasks` — Retrieves all tasks.
-- `POST /api/tasks` — Creates new decomposed tasks and optionally forwards them to the Switch room.
-- `PATCH /api/tasks/:id` — Updates task status, priority, or records human completion verification with audit trail.
-- `GET /api/requests` — Retrieves historical guest requests.
-- `POST /api/requests` — Logs a new guest inquiry.
-- `GET /api/messages` — Retrieves Switch ops room messages.
-- `POST /api/messages` — Posts a message and dispatches it to the Switch room.
-- `GET /api/agents` — Returns agent profiles with dynamic active task counts.
-- `GET /api/alerts` — Returns operational risk radar alerts.
-- `POST /api/reset-demo` — Restores database to clean demonstration seed.
-
-### Switch Integration
-- `GET /api/switch/config` — Returns current Switch configuration and connection status.
-- `POST /api/switch/config` — Updates Switch room webhook URL, room ID, channel, and bearer credentials.
-- `POST /api/switch/test` — Dispatches a live HTTP probe ping to verify real Switch room connectivity.
-- `POST /api/switch/dispatch` — Broadcasts custom Switch protocol event envelopes.
-
-### AI Intelligence (Gemini 2.5 Flash)
-- `POST /api/gemini/parse-request` — Decomposes complex guest text into tasks and enforces the missing-room safeguard.
-- `POST /api/gemini/operational-decision` — Central Operations AI managerial decision engine.
-- `POST /api/gemini/switch-dialogue` — Generates multi-agent collaborative alignment dialogues.
 
 ---
 
@@ -207,9 +213,10 @@ npm start
 ## 9. Hackathon Presentation Walkthrough
 
 When presenting this application to judges or stakeholders:
-1. **Intake Multi-Department Request:** Open **Guest Requests** and click the *"Multi-Department Suite Request (AC + Towels + Late Checkout)"* scenario. Watch Central AI instantly break the request into 3 distinct tasks across Maintenance, Housekeeping, and Reception with dependency tracking.
-2. **Demonstrate Missing-Room Safeguard:** Click the *"Emergency Service Failure with Missing Room Number"* preset. Observe how Central AI flags `detectedRoom: null` and refuses to guess, prompting the Reception Agent to ask the guest for suite confirmation.
-3. **Inspect the Operations Task Center:** View live SLA countdowns updating in real time. Show the immutable audit trail in the Task Detail Drawer.
-4. **Trigger Human Verification:** Click *"Sign Off"* on an active task. Note that AI cannot self-complete physical work—enter a staff badge ID and confirm resolution.
-5. **Switch Operations Room:** Open the Switch room to see autonomous multi-agent coordination with honest provenance badges (`LIVE_AGENT`, `SWITCH_PROTOCOL`, `DEMO_SEED`).
-6. **Test Switch Integration:** Navigate to **Settings**, enter a Switch Room Webhook URL, and click *"Send Switch Probe Ping"* to demonstrate the honest `CONNECTED` vs `DISCONNECTED` verification engine.
+1. **Open the Team Collaboration Room:** Go to **Team Chat** to show the live operations room where human teammates (Elena Rostova, Marcus Vance, Carlos Mendez, Maria Santos) and AI agents work together.
+2. **Execute the Room 204 Live Workflow:** Click *"Run Room 204 Live Teammate Demo"*. Watch Elena Rostova report the AC issue and towel request, observe Central Operations AI decompose the request into cases `#CAS-8201` and `#CAS-8202`, and watch Maintenance Agent and Housekeeping Agent acknowledge, report progress, and place the tasks into `Completion Pending Confirmation`.
+3. **Verify Physical Completion (Principle #8):** Click *"Sign Off"* on either task chip in the chat feed. Show that AI cannot complete physical work on its own—enter an authorized staff badge ID (e.g. `ENG-402`) and confirm resolution to officially close the case with an immutable audit entry.
+4. **Interactive Natural Language Inquiry:** Post a message as Front Desk: *"What is the status of Suite 412?"* and watch Central Operations AI query the database and reply with live task progress in real time.
+5. **Intake Multi-Department Request:** Open **Guest Requests** and click the *"Multi-Department Suite Request (AC + Towels + Late Checkout)"* scenario.
+6. **Demonstrate Missing-Room Safeguard:** Click the *"Emergency Service Failure with Missing Room Number"* preset. Observe how Central AI flags `detectedRoom: null` and refuses to guess, prompting the Reception Agent to ask the guest for suite confirmation.
+7. **Test Switch Integration:** Navigate to **Settings**, enter a Switch Room Webhook URL, and click *"Send Switch Probe Ping"* to demonstrate the honest `CONNECTED` vs `DISCONNECTED` verification engine.

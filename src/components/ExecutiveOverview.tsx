@@ -16,6 +16,7 @@ import {
   Wrench,
   BedDouble,
   Compass,
+  MessageSquare,
 } from 'lucide-react';
 import { Task, SwitchConfig, OperationalAlert, AgentProfile, NavTab } from '../types';
 
@@ -116,19 +117,28 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
 
           <div className="flex items-center gap-3 flex-wrap">
             <button
-              onClick={onOpenIntake}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-zinc-950 bg-amber-400 hover:bg-amber-300 rounded-xl shadow-xs transition-all cursor-pointer"
+              onClick={() => onNavigateTab('team-chat')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-zinc-950 bg-amber-400 hover:bg-amber-300 rounded-xl shadow-xs transition-all cursor-pointer"
             >
-              <Sparkles className="w-4 h-4" />
+              <MessageSquare className="w-4 h-4 text-zinc-950" />
+              <span>Team Collaboration Chat</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            </button>
+
+            <button
+              onClick={onOpenIntake}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-zinc-200 bg-zinc-800/90 hover:bg-zinc-750 border border-zinc-750 rounded-xl transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" />
               <span>Intake Complex Request</span>
             </button>
 
             <button
               onClick={() => onNavigateTab('switch')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-zinc-200 bg-zinc-800/90 hover:bg-zinc-750 border border-zinc-750 rounded-xl transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-zinc-300 bg-zinc-800/60 hover:bg-zinc-750 border border-zinc-800 rounded-xl transition-colors cursor-pointer"
             >
-              <Radio className="w-4 h-4 text-amber-400" />
-              <span>Switch Operations Room</span>
+              <Radio className="w-4 h-4 text-zinc-400" />
+              <span>Switch Protocol</span>
             </button>
           </div>
         </div>

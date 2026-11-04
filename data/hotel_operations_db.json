@@ -1,0 +1,877 @@
+{
+  "tasks": [
+    {
+      "id": "task-1793809771315-204-ac",
+      "caseRef": "CAS-8201",
+      "room": "204",
+      "title": "Inspect & recalibrate chilled-water HVAC unit (Suite 204)",
+      "description": "Guest reports AC blowing warm air (26.5°C). Compressor actuator and coil inspection required.",
+      "department": "Maintenance",
+      "assignedAgent": "Maintenance Agent",
+      "priority": "High",
+      "status": "Resolved",
+      "lifecycleStage": "RESOLVED",
+      "deliveryStatus": "COMPLETED",
+      "createdAt": 1793809771315,
+      "slaDeadline": 1793811271315,
+      "estimatedMinutes": 25,
+      "dependencies": [],
+      "requiresHumanConfirmation": true,
+      "guestName": "Mr. David Sterling",
+      "riskAssessment": "Thermal discomfort. Risk of negative review on departure.",
+      "isDemoData": false,
+      "auditTrail": [
+        {
+          "id": "aud-1793809771315-ac1",
+          "timestamp": 1793809771315,
+          "actor": "Central Operations AI",
+          "actorRole": "Orchestrator",
+          "action": "CREATED",
+          "note": "Decomposed from Room 204 team chat request by Elena Rostova"
+        },
+        {
+          "id": "aud-1793809771315-ac2",
+          "timestamp": 1793809771415,
+          "actor": "Central Operations AI",
+          "actorRole": "Orchestrator",
+          "action": "DISPATCHED",
+          "note": "Assigned to Maintenance Agent with 25m SLA target"
+        },
+        {
+          "id": "aud-1793809771315-ac3",
+          "timestamp": 1793809779327,
+          "actor": "Maintenance Agent",
+          "actorRole": "Engineering",
+          "action": "NOTE_ADDED",
+          "note": "Chilled water actuator recalibrated; air temperature 19.8°C; awaiting human staff sign-off"
+        },
+        {
+          "id": "aud-1793809797310-verify",
+          "timestamp": 1793809797310,
+          "actor": "Carlos Mendez (Badge: ENG-402)",
+          "actorRole": "Authorized Staff",
+          "action": "HUMAN_VERIFIED",
+          "note": "Physical in-suite verification confirmed. Checklist verified: YES. Notes: \"Inspected AC unit in Suite 204. Thermostat holding 20C.\""
+        }
+      ],
+      "resolvedBy": "Carlos Mendez (Badge: ENG-402)",
+      "resolvedAt": 1793809797310,
+      "resolutionNotes": "Inspected AC unit in Suite 204. Thermostat holding 20C."
+    },
+    {
+      "id": "task-1793809771315-204-towels",
+      "caseRef": "CAS-8202",
+      "room": "204",
+      "title": "Deliver 3 extra luxury bath towels & amenities (Suite 204)",
+      "description": "Guest requested 3 plush bath towels. Allocated from 2nd floor linen room.",
+      "department": "Housekeeping",
+      "assignedAgent": "Housekeeping Agent",
+      "priority": "Normal",
+      "status": "Completion Pending Confirmation",
+      "lifecycleStage": "COMPLETION_PENDING_CONFIRMATION",
+      "deliveryStatus": "AWAITING_HUMAN_CONFIRMATION",
+      "createdAt": 1793809771315,
+      "slaDeadline": 1793810671315,
+      "estimatedMinutes": 15,
+      "dependencies": [],
+      "requiresHumanConfirmation": true,
+      "guestName": "Mr. David Sterling",
+      "isDemoData": false,
+      "auditTrail": [
+        {
+          "id": "aud-1793809771315-tw1",
+          "timestamp": 1793809771315,
+          "actor": "Central Operations AI",
+          "actorRole": "Orchestrator",
+          "action": "CREATED",
+          "note": "Decomposed from Room 204 team chat request by Elena Rostova"
+        },
+        {
+          "id": "aud-1793809771315-tw2",
+          "timestamp": 1793809771415,
+          "actor": "Central Operations AI",
+          "actorRole": "Orchestrator",
+          "action": "DISPATCHED",
+          "note": "Assigned to Housekeeping Agent with 15m SLA target"
+        },
+        {
+          "id": "aud-1793809771315-tw3",
+          "timestamp": 1793809777825,
+          "actor": "Housekeeping Agent",
+          "actorRole": "Housekeeping",
+          "action": "NOTE_ADDED",
+          "note": "Physical delivery finished; awaiting authorized human sign-off"
+        }
+      ]
+    },
+    {
+      "id": "task-1793809752207-towels",
+      "caseRef": "CAS-8128",
+      "room": "204",
+      "title": "Deliver fresh luxury bath towels & linen set (Suite 204)",
+      "description": "Operational task decomposed from team chat: \"Room 204 needs extra towels and the AC is not working.\"",
+      "department": "Housekeeping",
+      "assignedAgent": "Housekeeping Agent",
+      "priority": "Normal",
+      "status": "In Progress",
+      "lifecycleStage": "IN_PROGRESS",
+      "deliveryStatus": "IN_PROGRESS",
+      "createdAt": 1793809752207,
+      "slaDeadline": 1793810652207,
+      "estimatedMinutes": 15,
+      "dependencies": [],
+      "requiresHumanConfirmation": true,
+      "auditTrail": [
+        {
+          "id": "aud-1793809752207-3",
+          "timestamp": 1793809752207,
+          "actor": "Central Operations AI",
+          "actorRole": "Orchestrator",
+          "action": "CREATED",
+          "note": "Decomposed from chat message by Elena Rostova"
+        },
+        {
+          "id": "aud-1793809752207-4",
+          "timestamp": 1793809752307,
+          "actor": "Housekeeping Agent",
+          "actorRole": "Housekeeping",
+          "action": "ACCEPTED",
+          "note": "Allocated 2nd floor attendant for prompt delivery"
+        }
+      ]
+    },
+    {
+      "id": "task-1793809752207-ac",
+      "caseRef": "CAS-8127",
+      "room": "204",
+      "title": "Inspect & recalibrate HVAC climate control (Suite 204)",
+      "description": "Operational task decomposed from team chat: \"Room 204 needs extra towels and the AC is not working.\"",
+      "department": "Maintenance",
+      "assignedAgent": "Maintenance Agent",
+      "priority": "High",
+      "status": "In Progress",
+      "lifecycleStage": "IN_PROGRESS",
+      "deliveryStatus": "IN_PROGRESS",
+      "createdAt": 1793809752207,
+      "slaDeadline": 1793811252207,
+      "estimatedMinutes": 25,
+      "dependencies": [],
+      "requiresHumanConfirmation": true,
+      "auditTrail": [
+        {
+          "id": "aud-1793809752207-1",
+          "timestamp": 1793809752207,
+          "actor": "Central Operations AI",
+          "actorRole": "Orchestrator",
+          "action": "CREATED",
+          "note": "Decomposed from chat message by Elena Rostova"
+        },
+        {
+          "id": "aud-1793809752207-2",
+          "timestamp": 1793809752307,
+          "actor": "Maintenance Agent",
+          "actorRole": "Engineering",
+          "action": "ACCEPTED",
+          "note": "Acknowledged duty technician dispatch"
+        }
+      ]
+    },
+    {
+      "id": "task-101",
+      "caseRef": "CAS-8091",
+      "room": "412",
+      "title": "Inspect chilled-water HVAC unit — room ambient temperature 26.5°C",
+      "description": "Guest reports AC blowing ambient air despite thermostat setting of 20°C. Compressor cycle check required.",
+      "department": "Maintenance",
+      "assignedAgent": "Maintenance Agent",
+      "priority": "High",
+      "status": "In Progress",
+      "deliveryStatus": "IN_PROGRESS",
+      "createdAt": 1793806811379,
+      "slaDeadline": 1793808611379,
+      "estimatedMinutes": 30,
+      "dependencies": [],
+      "requiresHumanConfirmation": true,
+      "guestName": "Ambassador Harrison",
+      "riskAssessment": "VIP Suite guest with evening reception; thermal dissatisfaction could cause executive complaint.",
+      "isRepeatedIssue": true,
+      "isDemoData": true,
+      "auditTrail": [
+        {
+          "id": "aud-101-1",
+          "timestamp": 1793806811379,
+          "actor": "Central Operations AI",
+          "actorRole": "Orchestrator",
+          "action": "CREATED",
+          "note": "Decomposed from multi-problem incoming request via Request Intelligence."
+        },
+        {
+          "id": "aud-101-2",
+          "timestamp": 1793806871379,
+          "actor": "Central Operations AI",
+          "actorRole": "Orchestrator",
+          "action": "DISPATCHED",
+          "note": "Routed to Maintenance Agent with 30-minute target SLA."
+        },
+        {
+          "id": "aud-101-3",
+          "timestamp": 1793806991379,
+          "actor": "Maintenance Agent",
+          "actorRole": "Engineering",
+          "action": "ACCEPTED",
+          "note": "Technician Marco dispatched with diagnostic manifold."
+        }
+      ]
+    },
+    {
+      "id": "task-102",
+      "caseRef": "CAS-8092",
+      "room": "412",
+      "title": "Hypoallergenic goose-down pillow delivery & evening turndown refresh",
+      "description": "Deliver two firm hypoallergenic pillows and execute secondary turndown with bespoke lavender linen spray.",
+      "department": "Housekeeping",
+      "assignedAgent": "Housekeeping Agent",
+      "priority": "Normal",
+      "status": "Dispatched",
+      "deliveryStatus": "DELIVERED",
+      "createdAt": 1793806931379,
+      "slaDeadline": 1793809331379,
+      "estimatedMinutes": 20,
+      "dependencies": [
+        "Wait for Maintenance technician to finish HVAC diagnostic before entering room"
+      ],
+      "requiresHumanConfirmation": true,
+      "guestName": "Ambassador Harrison",
+      "riskAssessment": "Minor discomfort if delayed past 20:00.",
+      "isDemoData": true,
+      "auditTrail": [
+        {
+          "id": "aud-102-1",
+          "timestamp": 1793806931379,
+          "actor": "Central Operations AI",
+          "actorRole": "Orchestrator",
+          "action": "CREATED",
+          "note": "Isolated from Suite 412 guest intake. Blocked by active HVAC task."
+        },
+        {
+          "id": "aud-102-2",
+          "timestamp": 1793806991379,
+          "actor": "Central Operations AI",
+          "actorRole": "Orchestrator",
+          "action": "DISPATCHED",
+          "note": "Sent to Housekeeping queue with explicit handover precondition."
+        }
+      ]
+    },
+    {
+      "id": "task-103",
+      "caseRef": "CAS-8088",
+      "room": "708",
+      "title": "Master bathroom shower diverter valve leaking into ceiling cavity",
+      "description": "Shower cartridge leak suspected. Plumber dispatched to isolate cold water shutoff and replace silicone O-ring.",
+      "department": "Maintenance",
+      "assignedAgent": "Maintenance Agent",
+      "priority": "Urgent",
+      "status": "In Progress",
+      "deliveryStatus": "IN_PROGRESS",
+      "createdAt": 1793806211379,
+      "slaDeadline": 1793808011379,
+      "estimatedMinutes": 30,
+      "dependencies": [],
+      "requiresHumanConfirmation": true,
+      "guestName": "Lady Genevieve",
+      "riskAssessment": "Structural water seepage into Suite 608 below if uncontained.",
+      "isDemoData": true,
+      "auditTrail": [
+        {
+          "id": "aud-103-1",
+          "timestamp": 1793806211379,
+          "actor": "Reception Agent",
+          "actorRole": "Front Desk",
+          "action": "CREATED",
+          "note": "Direct call from Lady Genevieve logged at PBX console."
+        },
+        {
+          "id": "aud-103-2",
+          "timestamp": 1793806271379,
+          "actor": "Central Operations AI",
+          "actorRole": "Orchestrator",
+          "action": "ROUTED",
+          "note": "Assigned Urgent priority due to cross-floor leak hazard."
+        }
+      ]
+    },
+    {
+      "id": "task-104",
+      "caseRef": "CAS-8075",
+      "room": "215",
+      "title": "Disputed mini-bar and premium laundry charge audit on departure folio",
+      "description": "Guest claims two dry cleaning jackets were mischarged from previous occupant. Assistant Front Office Manager reviewing POS receipts.",
+      "department": "Reception",
+      "assignedAgent": "Reception Agent",
+      "priority": "Normal",
+      "status": "Open",
+      "deliveryStatus": "DELIVERED",
+      "createdAt": 1793807291379,
+      "slaDeadline": 1793809991379,
+      "estimatedMinutes": 25,
+      "dependencies": [],
+      "requiresHumanConfirmation": true,
+      "guestName": "Dr. Kenji Sato",
+      "riskAssessment": "Potential negative checkout review if unresolved prior to 09:00 departure.",
+      "isDemoData": true,
+      "auditTrail": [
+        {
+          "id": "aud-104-1",
+          "timestamp": 1793807291379,
+          "actor": "Reception Agent",
+          "actorRole": "Front Desk",
+          "action": "CREATED",
+          "note": "Folio dispute flagged during express pre-departure check."
+        }
+      ]
+    },
+    {
+      "id": "task-105",
+      "caseRef": "CAS-8060",
+      "room": "Penthouse 1",
+      "title": "Presidential suite private dining cutlery missing & sommelier glassware setup",
+      "description": "Eight sets of Christofle sterling silverware and Riedel Burgundy glasses requested for 20:30 VIP dinner.",
+      "department": "Housekeeping",
+      "assignedAgent": "Housekeeping Agent",
+      "priority": "High",
+      "status": "In Progress",
+      "deliveryStatus": "IN_PROGRESS",
+      "createdAt": 1793805371379,
+      "slaDeadline": 1793808371379,
+      "estimatedMinutes": 45,
+      "dependencies": [],
+      "requiresHumanConfirmation": true,
+      "guestName": "Crown Prince Al-Maktoum delegation",
+      "riskAssessment": "High diplomatic visibility; zero margin for delay.",
+      "isDemoData": true,
+      "auditTrail": [
+        {
+          "id": "aud-105-1",
+          "timestamp": 1793805371379,
+          "actor": "Management Agent",
+          "actorRole": "General Manager",
+          "action": "CREATED",
+          "note": "Delegation liaison direct request."
+        }
+      ]
+    },
+    {
+      "id": "task-106",
+      "caseRef": "CAS-8051",
+      "room": "320",
+      "title": "Re-encode master RFID keycard after demagnetization near wireless charger",
+      "description": "Guest locked out in hallway. Bellman brought temporary physical master; receptionist dispatched with permanent encrypted key.",
+      "department": "Reception",
+      "assignedAgent": "Reception Agent",
+      "priority": "Urgent",
+      "status": "Resolved",
+      "deliveryStatus": "COMPLETED",
+      "createdAt": 1793802491379,
+      "slaDeadline": 1793804291379,
+      "estimatedMinutes": 15,
+      "dependencies": [],
+      "requiresHumanConfirmation": true,
+      "resolvedBy": "Front Desk Lead Julian Vance [EMP-814]",
+      "resolvedAt": 1793803211379,
+      "resolutionNotes": "Physical handover completed at door 320. Tested dual RFID lock cycles successfully.",
+      "guestName": "Marcus Sterling",
+      "isDemoData": true,
+      "auditTrail": [
+        {
+          "id": "aud-106-1",
+          "timestamp": 1793802491379,
+          "actor": "Reception Agent",
+          "actorRole": "Front Desk",
+          "action": "CREATED",
+          "note": "Corridor call terminal triggered."
+        },
+        {
+          "id": "aud-106-2",
+          "timestamp": 1793803211379,
+          "actor": "Julian Vance [EMP-814]",
+          "actorRole": "Authorized Staff",
+          "action": "HUMAN_VERIFIED",
+          "note": "Physical card handover and lock mortise cycle verified in person."
+        }
+      ]
+    }
+  ],
+  "requests": [
+    {
+      "id": "req-001",
+      "rawText": "Hello, this is Ambassador Harrison in room 412. The air conditioning is blowing hot air again and we need extra pillows.",
+      "detectedRoom": "412",
+      "guestName": "Ambassador Harrison",
+      "status": "ROUTED",
+      "createdTaskIds": [
+        "task-101",
+        "task-102"
+      ],
+      "createdAt": 1793806811379,
+      "urgencyLevel": "High",
+      "executiveSummary": "Split into Maintenance HVAC repair and Housekeeping pillow delivery.",
+      "isDemoData": true
+    },
+    {
+      "id": "req-002",
+      "rawText": "Lady Genevieve in Room 708: master bath shower diverter valve leaking into ceiling cavity.",
+      "detectedRoom": "708",
+      "guestName": "Lady Genevieve",
+      "status": "IN_PROGRESS",
+      "createdTaskIds": [
+        "task-103"
+      ],
+      "createdAt": 1793806211379,
+      "urgencyLevel": "Urgent",
+      "executiveSummary": "Immediate plumbing isolation dispatched.",
+      "isDemoData": true
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-seed-1",
+      "sender": "Central Operations AI",
+      "avatarRole": "Orchestrator",
+      "content": "Switch Agent Mesh operational. Monitoring 420 luxury guest suites. 4 specialized department agents online.",
+      "badge": "INFO",
+      "timestamp": "18:15",
+      "sourceType": "DEMO_SEED",
+      "deliveryState": "LOCAL_MESH"
+    },
+    {
+      "id": "msg-seed-2",
+      "sender": "Central Operations AI",
+      "avatarRole": "Orchestrator",
+      "content": "Parsed multi-part dispatch for Suite 412 (Ambassador Harrison). Split into Maintenance (HVAC) & Housekeeping (Pillows/Linen).",
+      "badge": "DISPATCHED",
+      "timestamp": "18:18",
+      "room": "412",
+      "sourceType": "DEMO_SEED",
+      "deliveryState": "LOCAL_MESH"
+    },
+    {
+      "id": "msg-seed-3",
+      "sender": "Maintenance Agent",
+      "avatarRole": "Engineering",
+      "content": "Technician Marco is on level 4 with HVAC diagnostic manifold. Entering 412 now. Ambient reading 26.5°C.",
+      "badge": "ACKNOWLEDGED",
+      "timestamp": "18:21",
+      "room": "412",
+      "sourceType": "DEMO_SEED",
+      "deliveryState": "LOCAL_MESH"
+    },
+    {
+      "id": "msg-seed-4",
+      "sender": "Housekeeping Agent",
+      "avatarRole": "Housekeeping",
+      "content": "Holding delivery of hypoallergenic pillows at service lift 4 until Maintenance confirms HVAC refrigerant pressure.",
+      "badge": "SLA ACTIVE",
+      "timestamp": "18:23",
+      "room": "412",
+      "sourceType": "DEMO_SEED",
+      "deliveryState": "LOCAL_MESH"
+    },
+    {
+      "id": "msg-seed-5",
+      "sender": "Management Agent",
+      "avatarRole": "General Manager",
+      "content": "Note on 412: Guest had an unresolved AC complaint 3 days ago in room 408. Proactively monitoring. If not chilled by 18:45, offer executive lounge access.",
+      "badge": "ALERT",
+      "timestamp": "18:25",
+      "room": "412",
+      "sourceType": "DEMO_SEED",
+      "deliveryState": "LOCAL_MESH"
+    },
+    {
+      "id": "msg-seed-6",
+      "sender": "Central Operations AI",
+      "avatarRole": "Orchestrator",
+      "content": "Maintenance alert: Suite 708 plumbing SLA approaching 2 minutes remaining. Engineering supervisor alerted.",
+      "badge": "ALERT",
+      "timestamp": "18:32",
+      "room": "708",
+      "sourceType": "DEMO_SEED",
+      "deliveryState": "LOCAL_MESH"
+    },
+    {
+      "id": "msg-1793808715874",
+      "sender": "Central Operations AI",
+      "avatarRole": "Orchestrator",
+      "content": "hello guys",
+      "badge": "INFO",
+      "timestamp": "04:11 PM",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "LOCAL_MESH"
+    },
+    {
+      "id": "msg-1793809751404-gnbp",
+      "sender": "Elena Rostova",
+      "avatarRole": "Front Desk Lead",
+      "senderType": "HUMAN",
+      "department": "Reception",
+      "content": "Room 204 needs extra towels and the AC is not working.",
+      "badge": "INFO",
+      "timestamp": "04:29 PM",
+      "channel": "#operations-general",
+      "sourceType": "LIVE_STAFF",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809752207-coord",
+      "sender": "Central Operations AI",
+      "avatarRole": "Orchestrator",
+      "senderType": "AI_AGENT",
+      "department": "Management",
+      "content": "I have identified 2 separate operational tasks for Suite 204. Coordinating departments: [CAS-8127] Maintenance, [CAS-8128] Housekeeping.",
+      "badge": "DISPATCHED",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "referencedTaskIds": [
+        "task-1793809752207-ac",
+        "task-1793809752207-towels"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809753510-maint",
+      "sender": "Maintenance Agent",
+      "avatarRole": "Engineering",
+      "senderType": "AI_AGENT",
+      "department": "Maintenance",
+      "content": "Maintenance request accepted for Suite 204: Chilled-water HVAC inspection assigned to Technician Carlos Mendez. Active SLA: 25 minutes.",
+      "badge": "ACKNOWLEDGED",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "referencedTaskIds": [
+        "task-1793809752207-ac"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809754812-hk",
+      "sender": "Housekeeping Agent",
+      "avatarRole": "Housekeeping",
+      "senderType": "AI_AGENT",
+      "department": "Housekeeping",
+      "content": "Housekeeping request accepted for Suite 204: Fresh bath towels allocated from linen station. Target delivery within 15 minutes.",
+      "badge": "ACKNOWLEDGED",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "referencedTaskIds": [
+        "task-1793809752207-towels"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809771315-demo-1",
+      "sender": "Elena Rostova",
+      "avatarRole": "Front Desk Lead",
+      "senderType": "HUMAN",
+      "department": "Reception",
+      "content": "Room 204 has requested 3 extra bath towels, and the guest reported that the AC is blowing warm air (ambient 26.5°C).",
+      "badge": "INFO",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "channel": "#operations-general",
+      "sourceType": "LIVE_STAFF",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809771315-demo-2",
+      "sender": "Central Operations AI",
+      "avatarRole": "Orchestrator",
+      "senderType": "AI_AGENT",
+      "department": "Management",
+      "content": "I have identified two independent operational tasks for Suite 204. Decomposing into Maintenance (HVAC) and Housekeeping (Linens) with SLA tracking. Creating cases #CAS-8201 and #CAS-8202.",
+      "badge": "DISPATCHED",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "referencedTaskIds": [
+        "task-1793809771315-204-ac",
+        "task-1793809771315-204-towels"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809771315-demo-3",
+      "sender": "Maintenance Agent",
+      "avatarRole": "Engineering",
+      "senderType": "AI_AGENT",
+      "department": "Maintenance",
+      "content": "Task CAS-8201 accepted for Suite 204: AC diagnostic dispatch. Technician Carlos Mendez dispatched on-site with thermal probe.",
+      "badge": "ACKNOWLEDGED",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "referencedTaskIds": [
+        "task-1793809771315-204-ac"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809771315-demo-4",
+      "sender": "Housekeeping Agent",
+      "avatarRole": "Housekeeping",
+      "senderType": "AI_AGENT",
+      "department": "Housekeeping",
+      "content": "Task CAS-8202 accepted for Suite 204: Extra bath towels. Attendant Maria allocated from 2nd floor buffer.",
+      "badge": "ACKNOWLEDGED",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "referencedTaskIds": [
+        "task-1793809771315-204-towels"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809771315-demo-5",
+      "sender": "Housekeeping Agent",
+      "avatarRole": "Housekeeping",
+      "senderType": "AI_AGENT",
+      "department": "Housekeeping",
+      "content": "Task CAS-8202 update: Extra bath towels placed in Suite 204 bathroom. Physical delivery complete. Awaiting human staff sign-off.",
+      "badge": "SLA ACTIVE",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "referencedTaskIds": [
+        "task-1793809771315-204-towels"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809771315-demo-6",
+      "sender": "Maintenance Agent",
+      "avatarRole": "Engineering",
+      "senderType": "AI_AGENT",
+      "department": "Maintenance",
+      "content": "Task CAS-8201 update: Chilled-water actuator valve in Suite 204 recalibrated. Air output now 19.8°C. Physical repair complete. Awaiting human staff sign-off.",
+      "badge": "SLA ACTIVE",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "referencedTaskIds": [
+        "task-1793809771315-204-ac"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809771315-demo-7",
+      "sender": "Central Operations AI",
+      "avatarRole": "Orchestrator",
+      "senderType": "AI_AGENT",
+      "department": "Management",
+      "content": "Both physical interventions have completed on premises. Operating Principle #8 active: tasks held in \"Completion Pending Confirmation\" until authorized human staff sign-off.",
+      "badge": "INFO",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "referencedTaskIds": [
+        "task-1793809771315-204-ac",
+        "task-1793809771315-204-towels"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809771315-demo-8",
+      "sender": "Elena Rostova",
+      "avatarRole": "Front Desk Lead",
+      "senderType": "HUMAN",
+      "department": "Reception",
+      "content": "Placed a courtesy follow-up call to Suite 204. Guest confirmed the towels arrived and the room is cooling nicely. Ready for physical verification sign-off.",
+      "badge": "INFO",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "referencedTaskIds": [
+        "task-1793809771315-204-ac",
+        "task-1793809771315-204-towels"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_STAFF",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793809797310-verified",
+      "sender": "Central Operations AI",
+      "avatarRole": "Orchestrator",
+      "senderType": "AI_AGENT",
+      "department": "Management",
+      "content": "HUMAN SIGN-OFF VERIFIED: Case [CAS-8201] Suite 204 (\"Inspect & recalibrate chilled-water HVAC unit (Suite 204)\") officially CLOSED by Carlos Mendez (Badge: ENG-402). Notes: \"Inspected AC unit in Suite 204. Thermostat holding 20C.\"",
+      "badge": "VERIFIED",
+      "timestamp": "04:29 PM",
+      "room": "204",
+      "taskId": "task-1793809771315-204-ac",
+      "referencedTaskIds": [
+        "task-1793809771315-204-ac"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    }
+  ],
+  "alerts": [
+    {
+      "id": "alt-1",
+      "type": "SLA_BREACH_RISK",
+      "title": "Tight SLA on Suite 708 Plumbing Leak",
+      "description": "Shower diverter valve repair has 2 minutes remaining before 30-minute benchmark breach.",
+      "affectedRoomOrDept": "Room 708 (Maintenance)",
+      "severity": "High",
+      "recommendedAction": "Dispatch senior plumbing supervisor to assist technician Marco with cartridge replacement.",
+      "timestamp": "2 min ago",
+      "isDemoAlert": true,
+      "resolved": false
+    },
+    {
+      "id": "alt-2",
+      "type": "REPEATED_COMPLAINT",
+      "title": "Repeated Climate Control Failure Pattern (4th Floor)",
+      "description": "Room 412 is the 3rd suite on 4th floor west wing reporting inadequate cooling in past 48 hours.",
+      "affectedRoomOrDept": "4th Floor West Wing",
+      "severity": "Critical",
+      "recommendedAction": "Inspect branch chilled-water balancing valve 4-W in mechanical riser room.",
+      "timestamp": "14 min ago",
+      "isDemoAlert": true,
+      "resolved": false
+    },
+    {
+      "id": "alt-3",
+      "type": "WORKLOAD_SPIKE",
+      "title": "Housekeeping High Workload Pressure",
+      "description": "Turndown queue has 18 simultaneous suites due to 8 VIP late arrivals.",
+      "affectedRoomOrDept": "Housekeeping Department",
+      "severity": "Medium",
+      "recommendedAction": "Reassign 2 floaters from public area evening care to residential corridors.",
+      "timestamp": "25 min ago",
+      "isDemoAlert": true,
+      "resolved": false
+    }
+  ],
+  "agents": [
+    {
+      "id": "agent-central",
+      "name": "Central Operations AI",
+      "role": "Central Business Coordinator & General Manager Brain",
+      "department": "Management",
+      "avatar": "CO",
+      "status": "Active",
+      "activeTasksCount": 4,
+      "avgResponseMins": 0.8,
+      "specialty": "Autonomous orchestration, SLA tracking, risk mitigation & cross-department routing",
+      "autonomyLevel": "Full Delegated Authority",
+      "activeProtocols": [
+        "SLA_ENFORCER_V2",
+        "VIP_PROTECTION_MATRIX",
+        "DEPENDENCY_RESOLVER"
+      ],
+      "switchStatus": "STANDBY",
+      "recentActionsCount": 14
+    },
+    {
+      "id": "agent-reception",
+      "name": "Reception Agent",
+      "role": "Front Office & Guest Experience Intelligence",
+      "department": "Reception",
+      "avatar": "RX",
+      "status": "Active",
+      "activeTasksCount": 2,
+      "avgResponseMins": 2.1,
+      "specialty": "VIP arrival coordination, billing audits, room relocations, concierge escalations",
+      "autonomyLevel": "Full Delegated Authority",
+      "activeProtocols": [
+        "RFID_MORTISE_SYNC",
+        "FOLIO_DISPUTE_GUARD",
+        "COURTESY_FOLLOWUP"
+      ],
+      "switchStatus": "STANDBY",
+      "recentActionsCount": 9
+    },
+    {
+      "id": "agent-housekeeping",
+      "name": "Housekeeping Agent",
+      "role": "Linen, Cleanliness & Environmental Quality",
+      "department": "Housekeeping",
+      "avatar": "HK",
+      "status": "High Load",
+      "activeTasksCount": 3,
+      "avgResponseMins": 4.5,
+      "specialty": "Suite turnover, sanitary deep-cleans, turndown orchestration, amenity replenishments",
+      "autonomyLevel": "Supervisor Review Required",
+      "activeProtocols": [
+        "TURNDOWN_LOAD_BALANCER",
+        "LINEN_BUFFER_MONITOR",
+        "HYGIENE_CHECKPOINT"
+      ],
+      "switchStatus": "STANDBY",
+      "recentActionsCount": 18
+    },
+    {
+      "id": "agent-maintenance",
+      "name": "Maintenance Agent",
+      "role": "Physical Infrastructure & Plant Engineering",
+      "department": "Maintenance",
+      "avatar": "MT",
+      "status": "Active",
+      "activeTasksCount": 2,
+      "avgResponseMins": 3.2,
+      "specialty": "Chilled-water HVAC, digital plumbing diagnostics, RFID access locks & electrical circuits",
+      "autonomyLevel": "Full Delegated Authority",
+      "activeProtocols": [
+        "HVAC_CHILLED_WATER_GUARD",
+        "PLUMBING_ISOLATION_NET",
+        "HARDWARE_FAILOVER"
+      ],
+      "switchStatus": "STANDBY",
+      "recentActionsCount": 11
+    },
+    {
+      "id": "agent-management",
+      "name": "Management Agent",
+      "role": "Executive Duty Manager & Risk Governance",
+      "department": "Management",
+      "avatar": "GM",
+      "status": "Investigating",
+      "activeTasksCount": 1,
+      "avgResponseMins": 1.5,
+      "specialty": "Critical service failure recovery, high-net-worth guest care, department pressure mitigation",
+      "autonomyLevel": "Executive Clearance Only",
+      "activeProtocols": [
+        "SERVICE_RECOVERY_PROTOCOL",
+        "EXECUTIVE_COMPENSATION_GATE",
+        "BRAND_REPUTATION_WATCH"
+      ],
+      "switchStatus": "STANDBY",
+      "recentActionsCount": 6
+    }
+  ],
+  "switchConfig": {
+    "status": "NOT_CONFIGURED",
+    "roomWebhookUrl": "",
+    "roomId": "hotel-operations-room",
+    "apiKey": "",
+    "channelTarget": "#hotel-ops-central",
+    "autoRelayTasks": true,
+    "totalDelivered": 0,
+    "lastTestStatus": "NOT_TESTED"
+  }
+}
