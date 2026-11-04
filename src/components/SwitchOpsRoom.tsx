@@ -16,12 +16,13 @@ import {
   Activity,
   Layers,
 } from 'lucide-react';
-import { SwitchMessage, Department, Task, SwitchConnectionState } from '../types';
+import { SwitchMessage, Department, Task, SwitchConnectionState, SwitchConfig } from '../types';
 
 interface SwitchOpsRoomProps {
   messages: SwitchMessage[];
   tasks: Task[];
-  switchState: SwitchConnectionState;
+  switchState?: SwitchConnectionState;
+  switchConfig?: SwitchConfig;
   onSendMessage: (sender: string, avatarRole: string, content: string, badge?: any, room?: string) => void;
   onRequestConsultation: (topic: string, room?: string) => Promise<void>;
   onDispatchSwitchEvent: (eventType: string, targetDept: Department, summary: string, room?: string) => void;
@@ -31,6 +32,7 @@ export const SwitchOpsRoom: React.FC<SwitchOpsRoomProps> = ({
   messages,
   tasks,
   switchState,
+  switchConfig,
   onSendMessage,
   onRequestConsultation,
   onDispatchSwitchEvent,
@@ -187,15 +189,27 @@ export const SwitchOpsRoom: React.FC<SwitchOpsRoomProps> = ({
                 <Radio className="w-3.5 h-3.5 text-amber-400" />
                 Switch Protocol v1.4
               </span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
-                STANDBY
+              <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
+                switchConfig?.status === 'CONNECTED'
+                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                  : switchConfig?.status === 'DISCONNECTED'
+                  ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                  : 'bg-zinc-800 text-amber-400 border border-zinc-700'
+              }`}>
+                {switchConfig?.status === 'CONNECTED'
+                  ? 'CONNECTED'
+                  : switchConfig?.status === 'DISCONNECTED'
+                  ? 'DISCONNECTED'
+                  : 'STANDBY'}
               </span>
             </div>
             <p className="text-[10px] text-zinc-400 leading-relaxed">
-              Verified local agent mesh adapter. External enterprise webhook integration ready.
+              {switchConfig?.status === 'CONNECTED'
+                ? `Active Switch Room: ${switchConfig.roomId || 'hotel-operations-room'}`
+                : 'Local agent mesh. Configure real Switch webhook in Settings.'}
             </p>
             <div className="pt-1 border-t border-zinc-850 flex items-center justify-between text-[10px] font-mono text-zinc-500">
-              <span>Events: {switchState.totalEventsProcessed}</span>
+              <span>Events: {switchConfig?.totalDelivered ?? switchState?.totalEventsProcessed ?? 0}</span>
               <span>Agents: 5 Active</span>
             </div>
           </div>

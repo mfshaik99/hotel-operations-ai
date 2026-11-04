@@ -1,15 +1,29 @@
 import React, { useState } from 'react';
-import { Sparkles, Radio, ShieldCheck, ChevronDown, CheckCircle2, Info, Layers } from 'lucide-react';
-import { SwitchConnectionState } from '../types';
+import {
+  Sparkles,
+  Radio,
+  ShieldCheck,
+  ChevronDown,
+  CheckCircle2,
+  AlertCircle,
+  Settings,
+  Layers,
+  BarChart3,
+  Users,
+  Inbox,
+  ClipboardList,
+  Home,
+} from 'lucide-react';
+import { SwitchConfig, NavTab } from '../types';
 
 interface HeaderProps {
-  activeTab: 'command' | 'switch' | 'departments' | 'radar' | 'analytics';
-  setActiveTab: (tab: 'command' | 'switch' | 'departments' | 'radar' | 'analytics') => void;
+  activeTab: NavTab;
+  setActiveTab: (tab: NavTab) => void;
   onOpenIntake: () => void;
   openTaskCount: number;
   alertCount: number;
   hasApiKey: boolean;
-  switchState: SwitchConnectionState;
+  switchConfig: SwitchConfig;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,14 +33,40 @@ export const Header: React.FC<HeaderProps> = ({
   openTaskCount,
   alertCount,
   hasApiKey,
-  switchState,
+  switchConfig,
 }) => {
   const [showSwitchDetails, setShowSwitchDetails] = useState(false);
 
+  const getSwitchStatusBadge = () => {
+    switch (switchConfig.status) {
+      case 'CONNECTED':
+        return (
+          <span className="flex items-center gap-1.5 text-emerald-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Switch: Connected</span>
+          </span>
+        );
+      case 'DISCONNECTED':
+        return (
+          <span className="flex items-center gap-1.5 text-rose-400">
+            <span className="w-2 h-2 rounded-full bg-rose-400" />
+            <span>Switch: Disconnected</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="flex items-center gap-1.5 text-amber-400/90">
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            <span>Switch: Standby (Local Mesh)</span>
+          </span>
+        );
+    }
+  };
+
   return (
-    <header className="sticky top-0 z-30 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md px-6 py-3">
-      <div className="flex items-center justify-between gap-6 max-w-[1600px] mx-auto">
-        {/* Zone 1: Brand Wordmark & Property Identity */}
+    <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md px-4 sm:px-6 py-2.5">
+      <div className="flex items-center justify-between gap-4 max-w-[1680px] mx-auto">
+        {/* Zone 1: Wordmark & Property Identity */}
         <div className="flex items-center gap-3 shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500/20 via-amber-600/10 to-transparent border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold tracking-wider text-xs shadow-xs">
             LO
@@ -38,25 +78,50 @@ export const Header: React.FC<HeaderProps> = ({
                 Business AI
               </span>
             </div>
-            <div className="text-[11px] text-zinc-400 font-normal">
-              Autonomous Hotel Operations & Multi-Agent Mesh
+            <div className="text-[11px] text-zinc-400 font-normal hidden sm:block">
+              One Hotel · One Shared Intelligence · Multiple AI Teammates
             </div>
           </div>
         </div>
 
-        {/* Zone 2: Navigation Links */}
-        <nav className="hidden md:flex items-center gap-1 bg-zinc-900/90 p-1 rounded-xl border border-zinc-800/80 shadow-xs">
+        {/* Zone 2: Navigation Links (7 Required Sections) */}
+        <nav className="hidden xl:flex items-center gap-0.5 bg-zinc-900/90 p-1 rounded-xl border border-zinc-800/80 shadow-xs">
           <button
-            onClick={() => setActiveTab('command')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'command'
+            onClick={() => setActiveTab('overview')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'overview'
                 ? 'bg-zinc-800 text-amber-300 font-semibold shadow-xs border border-zinc-700/60'
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
             }`}
           >
-            <span>Operations Command</span>
+            <Home className="w-3.5 h-3.5" />
+            <span>Overview</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('requests')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'requests'
+                ? 'bg-zinc-800 text-amber-300 font-semibold shadow-xs border border-zinc-700/60'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+            }`}
+          >
+            <Inbox className="w-3.5 h-3.5" />
+            <span>Guest Requests</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('tasks')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'tasks'
+                ? 'bg-zinc-800 text-amber-300 font-semibold shadow-xs border border-zinc-700/60'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+            }`}
+          >
+            <ClipboardList className="w-3.5 h-3.5" />
+            <span>Task Center</span>
             {openTaskCount > 0 && (
-              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-zinc-900 text-zinc-300 border border-zinc-750">
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-zinc-950 text-zinc-300 border border-zinc-750">
                 {openTaskCount}
               </span>
             )}
@@ -64,36 +129,38 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={() => setActiveTab('switch')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'switch'
                 ? 'bg-zinc-800 text-amber-300 font-semibold shadow-xs border border-zinc-700/60'
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
             }`}
           >
             <Radio className="w-3.5 h-3.5 text-amber-400" />
-            <span>Switch Ops Room</span>
+            <span>Switch Room</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('departments')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer ${
-              activeTab === 'departments'
+            onClick={() => setActiveTab('agents')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'agents'
                 ? 'bg-zinc-800 text-amber-300 font-semibold shadow-xs border border-zinc-700/60'
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
             }`}
           >
-            Departmental Hub
+            <Users className="w-3.5 h-3.5" />
+            <span>AI Agents</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('radar')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'radar'
+            onClick={() => setActiveTab('intelligence')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'intelligence'
                 ? 'bg-zinc-800 text-amber-300 font-semibold shadow-xs border border-zinc-700/60'
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
             }`}
           >
-            <span>Risk Radar</span>
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Intelligence</span>
             {alertCount > 0 && (
               <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-rose-500/15 text-rose-300 border border-rose-500/25">
                 {alertCount}
@@ -102,63 +169,112 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer ${
-              activeTab === 'analytics'
+            onClick={() => setActiveTab('settings')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'settings'
                 ? 'bg-zinc-800 text-amber-300 font-semibold shadow-xs border border-zinc-700/60'
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
             }`}
           >
-            Management Intelligence
+            <Settings className="w-3.5 h-3.5" />
+            <span>Settings</span>
           </button>
         </nav>
 
-        {/* Zone 3: Switch Integration Status & Primary Action */}
-        <div className="flex items-center gap-3 shrink-0">
-          {/* Switch Protocol Readiness Pill */}
+        {/* Zone 3: Switch Honest Connection Pill & Primary Action */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Switch Status Dropdown Trigger */}
           <div className="relative">
             <button
               onClick={() => setShowSwitchDetails(!showSwitchDetails)}
-              className="hidden lg:flex items-center gap-2 px-2.5 py-1 text-[11px] rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-zinc-700 transition-colors font-mono cursor-pointer"
+              className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-zinc-700 transition-colors font-mono cursor-pointer"
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>Switch: Standby (Local Mesh)</span>
+              {getSwitchStatusBadge()}
               <ChevronDown className="w-3 h-3 text-zinc-500" />
             </button>
 
-            {/* Switch Protocol Popover */}
+            {/* Switch Protocol Context Popover */}
             {showSwitchDetails && (
-              <div className="absolute right-0 top-9 w-80 p-4 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl z-50 text-xs text-zinc-300 space-y-2">
+              <div className="absolute right-0 top-10 w-80 p-4 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl z-50 text-xs text-zinc-300 space-y-2.5">
                 <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
                   <span className="font-semibold text-zinc-100 flex items-center gap-1.5 font-mono">
                     <Radio className="w-3.5 h-3.5 text-amber-400" />
-                    Switch Protocol v1.4
+                    Switch Integration
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-                    Ready
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 font-mono">
+                    {switchConfig.status}
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  Local multi-agent event bus active. External Switch production webhook integration is structured and ready for credential attachment. Zero simulated spoofing.
+
+                <div className="space-y-1 text-[11px] text-zinc-400 leading-relaxed">
+                  <div>
+                    <span className="text-zinc-500">Target Channel:</span>{' '}
+                    <span className="font-mono text-zinc-200">{switchConfig.channelTarget}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500">Room ID:</span>{' '}
+                    <span className="font-mono text-zinc-200">{switchConfig.roomId}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500">Delivered Events:</span>{' '}
+                    <span className="font-mono text-amber-400">{switchConfig.totalDelivered}</span>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-zinc-500 border-t border-zinc-800 pt-2">
+                  {switchConfig.status === 'CONNECTED'
+                    ? 'Verified live HTTP connection to external Switch Room webhook.'
+                    : 'Switch webhook is not actively delivering external requests. Local multi-agent event bus is handling room dispatch.'}
                 </p>
-                <div className="pt-1 text-[10px] font-mono text-zinc-500 space-y-0.5">
-                  <div>Bus Endpoint: {switchState.busEndpoint}</div>
-                  <div>Processed Events: {switchState.totalEventsProcessed}</div>
-                  <div>Live Agents: 5/5 Synchronized</div>
-                </div>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('settings');
+                    setShowSwitchDetails(false);
+                  }}
+                  className="w-full text-center py-1.5 text-[11px] font-semibold text-amber-400 hover:text-amber-300 bg-zinc-950 border border-zinc-800 rounded-lg transition-colors cursor-pointer"
+                >
+                  Configure Switch Webhook in Settings →
+                </button>
               </div>
             )}
           </div>
 
-          {/* Primary Action Button */}
+          {/* Intelligent Intake Action */}
           <button
             onClick={onOpenIntake}
-            className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-zinc-950 bg-amber-400 hover:bg-amber-300 active:scale-[0.98] rounded-lg shadow-sm transition-all whitespace-nowrap cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-zinc-950 bg-amber-400 hover:bg-amber-300 active:scale-[0.98] rounded-lg shadow-xs transition-all whitespace-nowrap cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-zinc-950" />
-            <span>Intelligent Intake</span>
+            <span className="hidden sm:inline">+ Guest Intake</span>
+            <span className="sm:hidden">+ Intake</span>
           </button>
         </div>
+      </div>
+
+      {/* Mobile Sub-Navigation Bar */}
+      <div className="xl:hidden flex items-center gap-1 overflow-x-auto pt-2 pb-1 text-xs">
+        {[
+          { id: 'overview' as NavTab, label: 'Overview' },
+          { id: 'requests' as NavTab, label: 'Requests' },
+          { id: 'tasks' as NavTab, label: `Tasks (${openTaskCount})` },
+          { id: 'switch' as NavTab, label: 'Switch' },
+          { id: 'agents' as NavTab, label: 'Agents' },
+          { id: 'intelligence' as NavTab, label: 'Intelligence' },
+          { id: 'settings' as NavTab, label: 'Settings' },
+        ].map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setActiveTab(item.id)}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium whitespace-nowrap cursor-pointer ${
+              activeTab === item.id
+                ? 'bg-zinc-800 text-amber-300 font-semibold'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
     </header>
   );

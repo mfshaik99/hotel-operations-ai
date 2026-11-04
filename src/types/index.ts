@@ -4,9 +4,19 @@ export type Priority = 'Low' | 'Normal' | 'High' | 'Urgent' | 'Critical';
 
 export type TaskStatus = 'Open' | 'Dispatched' | 'In Progress' | 'Escalated' | 'Resolved';
 
+export type DeliveryState =
+  | 'PENDING_DELIVERY'
+  | 'DELIVERED'
+  | 'ACKNOWLEDGED'
+  | 'IN_PROGRESS'
+  | 'AWAITING_HUMAN_CONFIRMATION'
+  | 'COMPLETED'
+  | 'DELIVERY_FAILED';
+
 // Backward compatibility aliases
 export type Status = 'Open' | 'In progress' | 'Resolved' | 'Escalated';
 export type Source = 'Reception' | 'Phone' | 'Front desk' | 'Chat';
+
 export interface CaseItem {
   id: string;
   room: string;
@@ -19,13 +29,27 @@ export interface CaseItem {
   completedBy?: string;
   assignedTo?: string;
 }
+
 export interface ActivityItem {
   id: string;
   title: string;
   detail: string;
   timestamp: string;
 }
-export type NavTab = 'overview' | 'requests' | 'departments' | 'activity' | 'dept-reception' | 'dept-housekeeping' | 'dept-maintenance';
+
+export type NavTab =
+  | 'overview'
+  | 'requests'
+  | 'tasks'
+  | 'switch'
+  | 'agents'
+  | 'intelligence'
+  | 'settings'
+  | 'departments'
+  | 'activity'
+  | 'dept-reception'
+  | 'dept-housekeeping'
+  | 'dept-maintenance';
 
 export type MessageSourceType = 'LIVE_AGENT' | 'SWITCH_PROTOCOL' | 'DEMO_SEED';
 
@@ -48,6 +72,7 @@ export interface Task {
   assignedAgent: string;
   priority: Priority;
   status: TaskStatus;
+  deliveryStatus?: DeliveryState;
   createdAt: number; // timestamp
   slaDeadline: number; // timestamp
   estimatedMinutes: number;
@@ -64,6 +89,22 @@ export interface Task {
   auditTrail: TaskAuditEntry[];
 }
 
+export interface GuestRequest {
+  id: string;
+  rawText: string;
+  detectedRoom?: string;
+  guestName?: string;
+  status: 'AWAITING_CLARIFICATION' | 'DECOMPOSED' | 'ROUTED' | 'IN_PROGRESS' | 'COMPLETED';
+  missingFields?: string[];
+  clarificationNeeded?: boolean;
+  clarificationQuestion?: string;
+  createdTaskIds: string[];
+  createdAt: number;
+  urgencyLevel?: Priority;
+  executiveSummary?: string;
+  isDemoData?: boolean;
+}
+
 export interface AgentProfile {
   id: string;
   name: string;
@@ -76,6 +117,8 @@ export interface AgentProfile {
   specialty: string;
   autonomyLevel: 'Full Delegated Authority' | 'Supervisor Review Required' | 'Executive Clearance Only';
   activeProtocols: string[];
+  switchStatus?: 'CONNECTED' | 'DISCONNECTED' | 'STANDBY';
+  recentActionsCount?: number;
 }
 
 export interface SwitchProtocolPayload {
@@ -98,7 +141,21 @@ export interface SwitchMessage {
   taskId?: string;
   room?: string;
   sourceType: MessageSourceType;
+  deliveryState?: 'DELIVERED' | 'PENDING' | 'FAILED' | 'LOCAL_MESH';
   switchPayload?: SwitchProtocolPayload;
+}
+
+export interface SwitchConfig {
+  status: 'NOT_CONFIGURED' | 'DISCONNECTED' | 'CONNECTED';
+  roomWebhookUrl: string;
+  roomId: string;
+  apiKey: string;
+  channelTarget: string;
+  lastTestedAt?: string;
+  lastTestStatus?: 'SUCCESS' | 'FAILED' | 'NOT_TESTED';
+  lastErrorMessage?: string;
+  autoRelayTasks: boolean;
+  totalDelivered: number;
 }
 
 export interface SwitchConnectionState {
@@ -121,6 +178,7 @@ export interface OperationalAlert {
   recommendedAction: string;
   timestamp: string;
   isDemoAlert?: boolean;
+  resolved?: boolean;
 }
 
 export interface AgentDecision {
