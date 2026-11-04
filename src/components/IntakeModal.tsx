@@ -6,7 +6,7 @@ import { Task, Department, Priority } from '../types';
 interface IntakeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onDispatchTasks: (newTasks: Omit<Task, 'id' | 'caseRef' | 'createdAt' | 'status'>[], summary: string, rawText: string) => void;
+  onDispatchTasks: (newTasks: Omit<Task, 'id' | 'caseRef' | 'createdAt' | 'status' | 'auditTrail'>[], summary: string, rawText: string) => void;
 }
 
 export const IntakeModal: React.FC<IntakeModalProps> = ({

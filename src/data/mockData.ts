@@ -1,4 +1,4 @@
-import { Task, AgentProfile, SwitchMessage, OperationalAlert } from '../types';
+import { Task, AgentProfile, SwitchMessage, OperationalAlert, SwitchConnectionState } from '../types';
 
 export const INITIAL_AGENTS: AgentProfile[] = [
   {
@@ -11,6 +11,8 @@ export const INITIAL_AGENTS: AgentProfile[] = [
     activeTasksCount: 5,
     avgResponseMins: 0.8,
     specialty: 'Autonomous orchestration, SLA tracking, risk mitigation & cross-department routing',
+    autonomyLevel: 'Full Delegated Authority',
+    activeProtocols: ['SLA_ENFORCER_V2', 'VIP_PROTECTION_MATRIX', 'DEPENDENCY_RESOLVER'],
   },
   {
     id: 'agent-reception',
@@ -22,6 +24,8 @@ export const INITIAL_AGENTS: AgentProfile[] = [
     activeTasksCount: 2,
     avgResponseMins: 2.1,
     specialty: 'VIP arrival coordination, billing audits, room relocations, concierge escalations',
+    autonomyLevel: 'Full Delegated Authority',
+    activeProtocols: ['RFID_MORTISE_SYNC', 'FOLIO_DISPUTE_GUARD', 'COURTESY_FOLLOWUP'],
   },
   {
     id: 'agent-housekeeping',
@@ -33,6 +37,8 @@ export const INITIAL_AGENTS: AgentProfile[] = [
     activeTasksCount: 3,
     avgResponseMins: 4.5,
     specialty: 'Suite turnover, sanitary deep-cleans, turndown orchestration, amenity replenishments',
+    autonomyLevel: 'Supervisor Review Required',
+    activeProtocols: ['TURNDOWN_LOAD_BALANCER', 'LINEN_BUFFER_MONITOR', 'HYGIENE_CHECKPOINT'],
   },
   {
     id: 'agent-maintenance',
@@ -44,6 +50,8 @@ export const INITIAL_AGENTS: AgentProfile[] = [
     activeTasksCount: 2,
     avgResponseMins: 3.2,
     specialty: 'Chilled-water HVAC, digital plumbing diagnostics, RFID access locks & electrical circuits',
+    autonomyLevel: 'Full Delegated Authority',
+    activeProtocols: ['HVAC_CHILLED_WATER_GUARD', 'PLUMBING_ISOLATION_NET', 'HARDWARE_FAILOVER'],
   },
   {
     id: 'agent-management',
@@ -55,8 +63,20 @@ export const INITIAL_AGENTS: AgentProfile[] = [
     activeTasksCount: 1,
     avgResponseMins: 1.5,
     specialty: 'Critical service failure recovery, high-net-worth guest care, department pressure mitigation',
+    autonomyLevel: 'Executive Clearance Only',
+    activeProtocols: ['SERVICE_RECOVERY_PROTOCOL', 'EXECUTIVE_COMPENSATION_GATE', 'BRAND_REPUTATION_WATCH'],
   },
 ];
+
+export const INITIAL_SWITCH_STATE: SwitchConnectionState = {
+  status: 'STANDBY_LOCAL',
+  protocolVersion: 'v1.4-draft',
+  busEndpoint: 'https://switch.internal.luminary-hotel.com/agent-bus/v1',
+  activeAgentsCount: 5,
+  lastHeartbeat: 'Verified Local Mesh Active',
+  totalEventsProcessed: 42,
+  isVerifiedIntegration: false,
+};
 
 const now = Date.now();
 
@@ -72,13 +92,40 @@ export const INITIAL_TASKS: Task[] = [
     priority: 'High',
     status: 'In Progress',
     createdAt: now - 18 * 60 * 1000,
-    slaDeadline: now + 12 * 60 * 1000, // 30 min SLA
+    slaDeadline: now + 12 * 60 * 1000,
     estimatedMinutes: 30,
     dependencies: [],
     requiresHumanConfirmation: true,
     guestName: 'Ambassador Harrison',
     riskAssessment: 'VIP Suite guest with evening reception; thermal dissatisfaction could cause executive complaint.',
     isRepeatedIssue: true,
+    isDemoData: true,
+    auditTrail: [
+      {
+        id: 'aud-101-1',
+        timestamp: now - 18 * 60 * 1000,
+        actor: 'Central Operations AI',
+        actorRole: 'Orchestrator',
+        action: 'CREATED',
+        note: 'Decomposed from multi-problem incoming request via Request Intelligence.',
+      },
+      {
+        id: 'aud-101-2',
+        timestamp: now - 17 * 60 * 1000,
+        actor: 'Central Operations AI',
+        actorRole: 'Orchestrator',
+        action: 'DISPATCHED',
+        note: 'Routed to Maintenance Agent with 30-minute target SLA.',
+      },
+      {
+        id: 'aud-101-3',
+        timestamp: now - 15 * 60 * 1000,
+        actor: 'Maintenance Agent',
+        actorRole: 'Engineering',
+        action: 'ACCEPTED',
+        note: 'Technician Marco dispatched with diagnostic manifold.',
+      },
+    ],
   },
   {
     id: 'task-102',
@@ -97,6 +144,25 @@ export const INITIAL_TASKS: Task[] = [
     requiresHumanConfirmation: true,
     guestName: 'Ambassador Harrison',
     riskAssessment: 'Minor discomfort if delayed past 20:00.',
+    isDemoData: true,
+    auditTrail: [
+      {
+        id: 'aud-102-1',
+        timestamp: now - 16 * 60 * 1000,
+        actor: 'Central Operations AI',
+        actorRole: 'Orchestrator',
+        action: 'CREATED',
+        note: 'Isolated from Suite 412 guest intake. Blocked by active HVAC task.',
+      },
+      {
+        id: 'aud-102-2',
+        timestamp: now - 15 * 60 * 1000,
+        actor: 'Central Operations AI',
+        actorRole: 'Orchestrator',
+        action: 'DISPATCHED',
+        note: 'Sent to Housekeeping queue with explicit handover precondition.',
+      },
+    ],
   },
   {
     id: 'task-103',
@@ -109,12 +175,31 @@ export const INITIAL_TASKS: Task[] = [
     priority: 'Urgent',
     status: 'In Progress',
     createdAt: now - 28 * 60 * 1000,
-    slaDeadline: now + 2 * 60 * 1000, // tight SLA!
+    slaDeadline: now + 2 * 60 * 1000,
     estimatedMinutes: 30,
     dependencies: [],
     requiresHumanConfirmation: true,
     guestName: 'Lady Genevieve',
     riskAssessment: 'Structural water seepage into Suite 608 below if uncontained.',
+    isDemoData: true,
+    auditTrail: [
+      {
+        id: 'aud-103-1',
+        timestamp: now - 28 * 60 * 1000,
+        actor: 'Reception Agent',
+        actorRole: 'Front Desk',
+        action: 'CREATED',
+        note: 'Direct call from Lady Genevieve logged at PBX console.',
+      },
+      {
+        id: 'aud-103-2',
+        timestamp: now - 27 * 60 * 1000,
+        actor: 'Central Operations AI',
+        actorRole: 'Orchestrator',
+        action: 'ROUTED',
+        note: 'Assigned Urgent priority due to cross-floor leak hazard.',
+      },
+    ],
   },
   {
     id: 'task-104',
@@ -133,6 +218,17 @@ export const INITIAL_TASKS: Task[] = [
     requiresHumanConfirmation: true,
     guestName: 'Dr. Kenji Sato',
     riskAssessment: 'Potential negative checkout review if unresolved prior to 09:00 departure.',
+    isDemoData: true,
+    auditTrail: [
+      {
+        id: 'aud-104-1',
+        timestamp: now - 10 * 60 * 1000,
+        actor: 'Reception Agent',
+        actorRole: 'Front Desk',
+        action: 'CREATED',
+        note: 'Folio dispute flagged during express pre-departure check.',
+      },
+    ],
   },
   {
     id: 'task-105',
@@ -151,6 +247,17 @@ export const INITIAL_TASKS: Task[] = [
     requiresHumanConfirmation: true,
     guestName: 'Crown Prince Al-Maktoum delegation',
     riskAssessment: 'High diplomatic visibility; zero margin for delay.',
+    isDemoData: true,
+    auditTrail: [
+      {
+        id: 'aud-105-1',
+        timestamp: now - 42 * 60 * 1000,
+        actor: 'Management Agent',
+        actorRole: 'General Manager',
+        action: 'CREATED',
+        note: 'Delegation liaison direct request.',
+      },
+    ],
   },
   {
     id: 'task-106',
@@ -167,66 +274,91 @@ export const INITIAL_TASKS: Task[] = [
     estimatedMinutes: 15,
     dependencies: [],
     requiresHumanConfirmation: true,
-    resolvedBy: 'Front Desk Lead Julian Vance (Duty Staff ID #814)',
+    resolvedBy: 'Front Desk Lead Julian Vance [EMP-814]',
     resolvedAt: now - 78 * 60 * 1000,
     resolutionNotes: 'Physical handover completed at door 320. Tested dual RFID lock cycles successfully.',
     guestName: 'Marcus Sterling',
+    isDemoData: true,
+    auditTrail: [
+      {
+        id: 'aud-106-1',
+        timestamp: now - 90 * 60 * 1000,
+        actor: 'Reception Agent',
+        actorRole: 'Front Desk',
+        action: 'CREATED',
+        note: 'Corridor call terminal triggered.',
+      },
+      {
+        id: 'aud-106-2',
+        timestamp: now - 78 * 60 * 1000,
+        actor: 'Julian Vance [EMP-814]',
+        actorRole: 'Authorized Staff',
+        action: 'HUMAN_VERIFIED',
+        note: 'Physical card handover and lock mortise cycle verified in person.',
+      },
+    ],
   },
 ];
 
 export const INITIAL_SWITCH_MESSAGES: SwitchMessage[] = [
   {
-    id: 'msg-1',
+    id: 'msg-seed-1',
     sender: 'Central Operations AI',
     avatarRole: 'Orchestrator',
-    content: 'SWITCH ROOM ONLINE. Central intelligence monitoring 420 active suites. All departmental agents synchronized.',
+    content: 'Switch Agent Mesh operational. Monitoring 420 luxury guest suites. 4 specialized department agents online.',
     badge: 'INFO',
     timestamp: '18:15',
+    sourceType: 'DEMO_SEED',
   },
   {
-    id: 'msg-2',
+    id: 'msg-seed-2',
     sender: 'Central Operations AI',
     avatarRole: 'Orchestrator',
     content: 'Parsed multi-part dispatch for Suite 412 (Ambassador Harrison). Split into Maintenance (HVAC) & Housekeeping (Pillows/Linen).',
     badge: 'DISPATCHED',
     timestamp: '18:18',
     room: '412',
+    sourceType: 'DEMO_SEED',
   },
   {
-    id: 'msg-3',
+    id: 'msg-seed-3',
     sender: 'Maintenance Agent',
     avatarRole: 'Engineering',
     content: 'Technician Marco is on level 4 with HVAC diagnostic manifold. Entering 412 now. Ambient reading 26.5°C.',
     badge: 'ACKNOWLEDGED',
     timestamp: '18:21',
     room: '412',
+    sourceType: 'DEMO_SEED',
   },
   {
-    id: 'msg-4',
+    id: 'msg-seed-4',
     sender: 'Housekeeping Agent',
     avatarRole: 'Housekeeping',
     content: 'Holding delivery of hypoallergenic pillows at service lift 4 until Maintenance confirms HVAC refrigerant pressure.',
     badge: 'SLA ACTIVE',
     timestamp: '18:23',
     room: '412',
+    sourceType: 'DEMO_SEED',
   },
   {
-    id: 'msg-5',
+    id: 'msg-seed-5',
     sender: 'Management Agent',
     avatarRole: 'General Manager',
-    content: 'Note on 412: Guest had an unresolved AC complaint 3 days ago in room 408. Proactively monitoring. If not chilled by 18:45, offer complimentary executive lounge access.',
+    content: 'Note on 412: Guest had an unresolved AC complaint 3 days ago in room 408. Proactively monitoring. If not chilled by 18:45, offer executive lounge access.',
     badge: 'ALERT',
     timestamp: '18:25',
     room: '412',
+    sourceType: 'DEMO_SEED',
   },
   {
-    id: 'msg-6',
+    id: 'msg-seed-6',
     sender: 'Central Operations AI',
     avatarRole: 'Orchestrator',
     content: 'Maintenance alert: Suite 708 plumbing SLA approaching 2 minutes remaining. Engineering supervisor alerted.',
     badge: 'ALERT',
     timestamp: '18:32',
     room: '708',
+    sourceType: 'DEMO_SEED',
   },
 ];
 
@@ -240,6 +372,7 @@ export const INITIAL_ALERTS: OperationalAlert[] = [
     severity: 'High',
     recommendedAction: 'Dispatch senior plumbing supervisor to assist technician Marco with cartridge replacement.',
     timestamp: '2 min ago',
+    isDemoAlert: true,
   },
   {
     id: 'alt-2',
@@ -250,6 +383,7 @@ export const INITIAL_ALERTS: OperationalAlert[] = [
     severity: 'Critical',
     recommendedAction: 'Inspect branch chilled-water balancing valve 4-W in mechanical riser room.',
     timestamp: '14 min ago',
+    isDemoAlert: true,
   },
   {
     id: 'alt-3',
@@ -260,6 +394,7 @@ export const INITIAL_ALERTS: OperationalAlert[] = [
     severity: 'Medium',
     recommendedAction: 'Reassign 2 floaters from public area evening care to residential corridors.',
     timestamp: '25 min ago',
+    isDemoAlert: true,
   },
 ];
 
