@@ -1,82 +1,20 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hotel Operations AI</title>
-<style>
-:root{--bg:#f4f6fa;--panel:#fff;--ink:#172033;--muted:#68738a;--line:#e6eaf1;--nav:#101a2c;--blue:#315efb;--green:#14845c;--amber:#a96508;--red:#c13b45}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
-.shell{display:grid;grid-template-columns:235px 1fr;min-height:100vh}.side{background:var(--nav);color:#fff;padding:26px 18px}.brand{font-size:18px;font-weight:750;letter-spacing:-.4px}.brand span{color:#8ea7ff}.subbrand{color:#9eabc0;font-size:11px;margin-top:4px}.navlabel{margin:36px 10px 10px;color:#8190a8;font-size:10px;font-weight:700;letter-spacing:1.2px}.navitem{padding:11px 12px;border-radius:9px;color:#c5cede;margin:4px 0}.navitem.active{background:#263756;color:#fff}.sidefoot{position:fixed;bottom:20px;color:#8190a8;font-size:11px}.main{padding:28px 34px;max-width:1500px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:26px}.eyebrow{color:var(--blue);font-weight:750;font-size:11px;letter-spacing:1.1px;text-transform:uppercase}.h1{font-size:27px;font-weight:760;letter-spacing:-.8px;margin:3px 0}.muted{color:var(--muted)}.pill{border:1px solid var(--line);background:#fff;border-radius:99px;padding:8px 12px;color:#48546b;font-size:12px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}.stat,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px}.stat{padding:17px 18px}.stat .label{color:var(--muted);font-size:12px}.stat .num{font-size:27px;font-weight:760;margin-top:4px}.stat .hint{font-size:11px;color:var(--muted)}.layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr);gap:18px;align-items:start}.panel{padding:20px}.panelhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.paneltitle{font-size:15px;font-weight:750}.small{font-size:11px;color:var(--muted)}.request{background:#f8f9fc;border:1px solid var(--line);border-radius:10px;padding:13px;margin-bottom:12px}.fieldlabel{display:block;font-size:11px;font-weight:700;color:#58647a;margin:12px 0 6px}input,textarea,select{width:100%;border:1px solid #dce2ec;border-radius:8px;padding:10px 11px;font:inherit;color:var(--ink);background:#fff;outline:none}input:focus,textarea:focus,select:focus{border-color:var(--blue)}textarea{min-height:92px;resize:vertical}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{border:0;border-radius:8px;padding:10px 14px;font-weight:700;font-size:12px;cursor:pointer}.primary{background:var(--blue);color:white}.secondary{background:#edf1ff;color:#294cdb}.ghost{background:#f0f2f6;color:#48546b}.danger{background:#fff0f0;color:var(--red)}.btn:disabled{opacity:.45;cursor:not-allowed}.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:610px}th{text-align:left;color:#7a8498;font-size:10px;text-transform:uppercase;letter-spacing:.7px;padding:10px 8px;border-bottom:1px solid var(--line)}td{padding:13px 8px;border-bottom:1px solid #eef0f5;font-size:12px;vertical-align:middle}.caseid{font-weight:750;color:#46536a}.case-title{font-weight:700}.tag{display:inline-block;border-radius:99px;padding:4px 8px;font-size:10px;font-weight:750}.open{background:#fff2d9;color:var(--amber)}.progress{background:#eaf0ff;color:#3155c8}.resolved{background:#e3f6ee;color:var(--green)}.escalated{background:#ffe8e9;color:var(--red)}.dept{color:#56627a}.actions{display:flex;gap:5px;flex-wrap:wrap}.action{border:0;background:transparent;color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;padding:4px}.activity{border-left:2px solid #dce4ff;padding:0 0 17px 14px;margin-left:5px;position:relative}.activity:before{content:"";position:absolute;left:-5px;top:3px;width:8px;height:8px;background:#6684ff;border-radius:50%}.activity strong{display:block;font-size:12px}.activity p{margin:3px 0;color:var(--muted);font-size:11px}.notice{font-size:11px;color:#657188;background:#f5f7fb;border-radius:8px;padding:10px;margin-top:14px}.empty{text-align:center;padding:24px;color:var(--muted)}.toast{position:fixed;right:22px;bottom:22px;background:#172033;color:#fff;padding:12px 16px;border-radius:9px;box-shadow:0 8px 30px #17203330;display:none;z-index:5}
-@media(max-width:950px){.shell{grid-template-columns:1fr}.side{display:none}.main{padding:22px 16px}.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.sidefoot{display:none}}
-@media(max-width:520px){.top{align-items:flex-start;flex-direction:column}.stats{gap:8px}.stat{padding:13px}.stat .num{font-size:23px}.grid2{grid-template-columns:1fr}}
-</style>
-</head>
-<body>
-<div class="shell">
-<aside class="side">
-  <div class="brand">hotel<span>ops</span>.ai</div><div class="subbrand">HUMAN + AI OPERATIONS</div>
-  <div class="navlabel">WORKSPACE</div><div class="navitem active">▦ &nbsp; Operations overview</div><div class="navitem">▤ &nbsp; Guest requests</div><div class="navitem">♧ &nbsp; Departments</div><div class="navitem">◷ &nbsp; Activity log</div>
-  <div class="navlabel">DEPARTMENTS</div><div class="navitem">⌂ &nbsp; Reception</div><div class="navitem">✧ &nbsp; Housekeeping</div><div class="navitem">⚙ &nbsp; Maintenance</div>
-  <div class="sidefoot">HACKATHON MVP · DEMO DATA ONLY</div>
-</aside>
-<main class="main">
-  <header class="top"><div><div class="eyebrow">Hotel operations workspace</div><div class="h1">Operations overview</div><div class="muted">One shared place to coordinate every guest request.</div></div><div class="pill">● Demo environment&nbsp; · &nbsp;Switch connection pending</div></header>
-  <section class="stats">
-    <div class="stat"><div class="label">Total requests</div><div class="num" id="total">3</div><div class="hint">All recorded cases</div></div>
-    <div class="stat"><div class="label">Awaiting action</div><div class="num" id="open">2</div><div class="hint">Needs department attention</div></div>
-    <div class="stat"><div class="label">In progress</div><div class="num" id="progress">1</div><div class="hint">Being handled by staff</div></div>
-    <div class="stat"><div class="label">Resolved</div><div class="num" id="resolved">0</div><div class="hint">Human-confirmed completion</div></div>
-  </section>
-  <section class="layout">
-    <div class="panel">
-      <div class="panelhead"><div><div class="paneltitle">Guest request queue</div><div class="small">Track ownership, priority and completion</div></div><button class="btn ghost" onclick="resetDemo()">Reset demo</button></div>
-      <div class="tablewrap"><table><thead><tr><th>Case</th><th>Request</th><th>Department</th><th>Priority</th><th>Status</th><th>Action</th></tr></thead><tbody id="cases"></tbody></table></div>
-      <div class="notice">Human-in-the-loop: an AI or workflow may recommend and route work, but only a staff member can confirm physical completion and resolve a case.</div>
-    </div>
-    <div class="panel">
-      <div class="panelhead"><div><div class="paneltitle">Create guest request</div><div class="small">Enter one issue per line to create separate cases</div></div></div>
-      <form id="requestForm">
-        <label class="fieldlabel" for="room">Room number</label><input id="room" placeholder="e.g. 204" required maxlength="8">
-        <label class="fieldlabel" for="guest">Guest request(s)</label><textarea id="message" placeholder="The AC is not cooling&#10;Please send two extra towels" required></textarea>
-        <div class="grid2"><div><label class="fieldlabel" for="priority">Priority</label><select id="priority"><option>Normal</option><option>High</option><option>Urgent</option></select></div><div><label class="fieldlabel" for="source">Received via</label><select id="source"><option>Reception</option><option>Phone</option><option>Front desk</option><option>Chat</option></select></div></div>
-        <button class="btn primary" style="width:100%;margin-top:16px" type="submit">＋ Create and route cases</button>
-      </form>
-      <div style="height:1px;background:var(--line);margin:22px 0"></div>
-      <div class="panelhead"><div><div class="paneltitle">Team activity</div><div class="small">Latest operational updates</div></div></div>
-      <div id="activity"><div class="activity"><strong>Maintenance assigned</strong><p>Room 204 · AC not cooling · Demo activity</p></div><div class="activity"><strong>Housekeeping assigned</strong><p>Room 204 · Extra towels · Demo activity</p></div><div class="activity"><strong>Reception logged request</strong><p>Two requests received for Room 204</p></div></div>
-      <div class="notice">Next milestone: connect department agents to a shared Switch room so staff and agents can coordinate in team chat.</div>
-    </div>
-  </section>
-</main>
-</div>
-<div class="toast" id="toast"></div>
-<script>
-const seed=[
-{id:"HO-0201",room:"204",title:"AC is not cooling",department:"Maintenance",priority:"High",status:"In progress",source:"Reception",created:"Just now"},
-{id:"HO-0202",room:"204",title:"Send two extra towels",department:"Housekeeping",priority:"Normal",status:"Open",source:"Reception",created:"Just now"},
-{id:"HO-0198",room:"108",title:"Bathroom tap is leaking",department:"Maintenance",priority:"Urgent",status:"Open",source:"Phone",created:"12 min ago"}
-];
-let cases=JSON.parse(localStorage.getItem("hotelops_cases")||"null")||seed;
-let activities=JSON.parse(localStorage.getItem("hotelops_activity")||"null")||[
-["Reception logged request","Room 204 · Two guest requests received"],
-["Housekeeping assigned","Room 204 · Extra towels"],
-["Maintenance assigned","Room 204 · AC not cooling"]
-];
-function save(){localStorage.setItem("hotelops_cases",JSON.stringify(cases));localStorage.setItem("hotelops_activity",JSON.stringify(activities))}
-function log(title,detail){activities.unshift([title,detail]);activities=activities.slice(0,8);renderActivity();save()}
-function toast(s){const t=document.getElementById("toast");t.textContent=s;t.style.display="block";setTimeout(()=>t.style.display="none",2400)}
-function departmentFor(s){const x=s.toLowerCase();if(/ac|air condition|electric|power|light|plug|socket|tap|leak|plumb|toilet|shower|heater|broken|repair|fault/.test(x))return "Maintenance";if(/towel|pillow|clean|linen|blanket|soap|amenit|room service|water bottle|bed sheet/.test(x))return "Housekeeping";return "Reception"}
-function badge(s){return s==="Resolved"?"resolved":s==="In progress"?"progress":s==="Escalated"?"escalated":"open"}
-function render(){document.getElementById("cases").innerHTML=cases.map(c=>`<tr><td><span class="caseid">${c.id}</span><br><span class="small">Room ${c.room}</span></td><td><span class="case-title">${esc(c.title)}</span><br><span class="small">${c.source}</span></td><td class="dept">${c.department}</td><td>${c.priority}</td><td><span class="tag ${badge(c.status)}">${c.status}</span></td><td><div class="actions">${c.status==="Open"?`<button class="action" onclick="setStatus('${c.id}','In progress')">Accept</button>`:""}${c.status!=="Resolved"?`<button class="action" onclick="resolve('${c.id}')">Confirm done</button>`:""}${c.status!=="Resolved"&&c.status!=="Escalated"?`<button class="action" onclick="setStatus('${c.id}','Escalated')">Escalate</button>`:""}</div></td></tr>`).join("")||'<tr><td colspan="6" class="empty">No guest requests yet.</td></tr>';
-document.getElementById("total").textContent=cases.length;document.getElementById("open").textContent=cases.filter(c=>c.status==="Open"||c.status==="Escalated").length;document.getElementById("progress").textContent=cases.filter(c=>c.status==="In progress").length;document.getElementById("resolved").textContent=cases.filter(c=>c.status==="Resolved").length;renderActivity()}
-function renderActivity(){document.getElementById("activity").innerHTML=activities.map(a=>`<div class="activity"><strong>${esc(a[0])}</strong><p>${esc(a[1])}</p></div>`).join("")}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function setStatus(id,status){const c=cases.find(x=>x.id===id);if(!c)return;c.status=status;log(status==="Escalated"?"Manager escalation triggered":"Department accepted case",c.id+" · Room "+c.room+" · "+c.title);render();toast(status==="Escalated"?"Case escalated":"Case accepted by department")}
-function resolve(id){const c=cases.find(x=>x.id===id);if(!c)return;if(!confirm("Confirm that hotel staff physically completed this task?"))return;c.status="Resolved";c.completedBy="Human staff";log("Human staff confirmed completion",c.id+" · Room "+c.room);render();toast("Case marked resolved after human confirmation")}
-document.getElementById("requestForm").addEventListener("submit",e=>{e.preventDefault();const room=document.getElementById("room").value.trim();const lines=document.getElementById("message").value.split(/\n|;|\.(?=\s|$)/).map(s=>s.trim()).filter(Boolean);if(!lines.length)return;const priority=document.getElementById("priority").value;const source=document.getElementById("source").value;const start=cases.length+210;lines.forEach((line,i)=>{const dept=departmentFor(line);const id="HO-"+String(start+i).padStart(4,"0");cases.unshift({id,room,title:line,department:dept,priority,status:"Open",source,created:"Just now"});log("New case routed to "+dept,id+" · Room "+room+" · "+line)});save();render();e.target.reset();toast(lines.length+" case(s) created and routed")});
-function resetDemo(){if(!confirm("Reset all demo cases and activity?"))return;cases=seed;activities=[["Reception logged request","Room 204 · Two guest requests received"],["Housekeeping assigned","Room 204 · Extra towels"],["Maintenance assigned","Room 204 · AC not cooling"]];save();render();toast("Demo data reset")}
-render();
-</script>
-</body>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hotel Operations AI — Elite Business Operations Hub</title>
+    <meta name="description" content="Autonomous central operations coordination layer for luxury hotels, unifying Reception, Housekeeping, Maintenance, and Management into one intelligent team with Switch collaboration and human-confirmed resolution." />
+    <meta property="og:title" content="Hotel Operations AI — Elite Business Operations Hub" />
+    <meta property="og:description" content="Autonomous central operations coordination layer for luxury hotels, unifying Reception, Housekeeping, Maintenance, and Management into one intelligent team with Switch collaboration and human-confirmed resolution." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-slate-950 text-slate-100 antialiased selection:bg-amber-500/20 selection:text-amber-200">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

@@ -1,0 +1,7 @@
+{
+  "name": "Hotel Operations AI — Elite Business Operations Hub",
+  "description": "Autonomous central operations coordination layer for luxury hotels, unifying Reception, Housekeeping, Maintenance, and Management into one intelligent team with Switch collaboration and human-confirmed resolution.",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
