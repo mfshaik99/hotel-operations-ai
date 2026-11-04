@@ -47,6 +47,13 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Switch: Connected</span>
           </span>
         );
+      case 'UNVERIFIED_GENERIC_WEBHOOK':
+        return (
+          <span className="flex items-center gap-1.5 text-amber-400">
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            <span>Switch: Generic Webhook (Unverified)</span>
+          </span>
+        );
       case 'DISCONNECTED':
         return (
           <span className="flex items-center gap-1.5 text-rose-400">
@@ -56,8 +63,8 @@ export const Header: React.FC<HeaderProps> = ({
         );
       default:
         return (
-          <span className="flex items-center gap-1.5 text-amber-400/90">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
+          <span className="flex items-center gap-1.5 text-zinc-400">
+            <span className="w-2 h-2 rounded-full bg-zinc-400" />
             <span>Switch: Standby (Local Mesh)</span>
           </span>
         );

@@ -173,19 +173,38 @@ When an event occurs (e.g. `TASK_CREATED`, `SLA_ACTIVE`, `ESCALATED`, or `HUMAN_
 ```
 
 ### Honest Connection Status States
-The platform enforces transparency and **never falsely claims an external connection exists**:
+The platform enforces transparency and **never falsely claims an external Switch connection exists**:
 - `NOT_CONFIGURED`: Default state when no external room webhook URL is provided. Operates on local agent mesh.
 - `DISCONNECTED`: A webhook URL is configured but network connectivity failed or returned a non-2xx status code.
 - `CONNECTION_FAILED`: Network timeout, DNS failure, or connection refused during probe.
-- `CONNECTED`: Verified only after an actual HTTP POST request to the Switch room succeeds with HTTP 200 OK.
+- `UNVERIFIED_GENERIC_WEBHOOK`: The target URL returned HTTP 200, but did not supply the required SandboxAQ Switch protocol headers (`X-Switch-Room-Status` or Switch v1 JSON envelope). The platform explicitly refuses to certify this as connected.
+- `CONNECTED`: Verified only when an authentic SandboxAQ Switch protocol handshake is confirmed via headers or protocol envelope.
 
 ---
 
-## 8. Development & Quickstart
+## 8. Security & Operating Principle Verification
 
-### Prerequisites
-- Node.js 18+
-- npm or pnpm
+The platform enforces strict security and non-bypassable business rules:
+
+| Security Rule | Mechanism | Enforcement |
+| :--- | :--- | :--- |
+| **Bi-Directional WebSockets** | Native `ws://` / `wss://` on `/ws` | Real-time chat duplex with SSE resilient fallback |
+| **Teammate Authentication** | Staff PIN & Badge verification | `POST /api/auth/staff-login` rejects spoofing (401) |
+| **Principle #8 Enforcement** | Anti-Bypass Guard | `PATCH /api/tasks/:id` rejects `{ status: 'Resolved' }` with 403 Forbidden |
+| **Human Sign-off Endpoint** | `POST /api/tasks/:id/verify` | Requires active staff token, checklist verification, and physical inspection notes |
+| **Demo Scenario Labeling** | Explicit metadata tags | All Room 204 simulated messages display `[DEMO SCENARIO (ROOM 204)]` |
+| **Switch Protocol Handshake** | Strict header validation | Generic webhooks classified as `UNVERIFIED_GENERIC_WEBHOOK` |
+| **Durable Atomic Writes** | Safe write with exit check | All mutating endpoints return HTTP 500 on disk write failure |
+
+### Staff Directory & Security PINs (For Reviewers & Judges)
+- **Elena Rostova** (Front Desk Lead) — Badge: `REC-104` | PIN: `1042`
+- **Marcus Vance** (Duty Manager) — Badge: `DM-9001` | PIN: `9001`
+- **Carlos Mendez** (Lead HVAC Engineer) — Badge: `ENG-402` | PIN: `4021`
+- **Maria Santos** (Housekeeping Supervisor) — Badge: `HK-3105` | PIN: `3105`
+
+---
+
+## 9. Development & Automated Test Suite
 
 ### Installation
 ```bash
@@ -196,11 +215,23 @@ cd hotel-operations-ai
 # Install dependencies
 npm install
 
-# Start development server
+# Start development server (Port 3000)
 npm run dev
 ```
 
-The application runs full-stack at `http://localhost:3000` with the Express API and Vite React frontend mounted concurrently.
+### Running Automated Security & Operations Tests
+```bash
+# Runs the full security and verification test suite via Node:test
+npx tsx --test tests/operations_security.test.ts
+```
+
+All 6 automated tests verify:
+1. Rejection of unauthenticated human messages (401).
+2. Proper staff PIN authentication.
+3. Rejection of invalid staff PINs.
+4. Blocking of human completion bypass via PATCH (403 Forbidden).
+5. Legitimate human completion verification with checklist and staff token.
+6. Safeguards requiring clarification when room numbers are omitted.
 
 ### Production Build
 ```bash
@@ -210,13 +241,12 @@ npm start
 
 ---
 
-## 9. Hackathon Presentation Walkthrough
+## 10. Hackathon Presentation Walkthrough
 
 When presenting this application to judges or stakeholders:
-1. **Open the Team Collaboration Room:** Go to **Team Chat** to show the live operations room where human teammates (Elena Rostova, Marcus Vance, Carlos Mendez, Maria Santos) and AI agents work together.
-2. **Execute the Room 204 Live Workflow:** Click *"Run Room 204 Live Teammate Demo"*. Watch Elena Rostova report the AC issue and towel request, observe Central Operations AI decompose the request into cases `#CAS-8201` and `#CAS-8202`, and watch Maintenance Agent and Housekeeping Agent acknowledge, report progress, and place the tasks into `Completion Pending Confirmation`.
-3. **Verify Physical Completion (Principle #8):** Click *"Sign Off"* on either task chip in the chat feed. Show that AI cannot complete physical work on its own—enter an authorized staff badge ID (e.g. `ENG-402`) and confirm resolution to officially close the case with an immutable audit entry.
-4. **Interactive Natural Language Inquiry:** Post a message as Front Desk: *"What is the status of Suite 412?"* and watch Central Operations AI query the database and reply with live task progress in real time.
-5. **Intake Multi-Department Request:** Open **Guest Requests** and click the *"Multi-Department Suite Request (AC + Towels + Late Checkout)"* scenario.
-6. **Demonstrate Missing-Room Safeguard:** Click the *"Emergency Service Failure with Missing Room Number"* preset. Observe how Central AI flags `detectedRoom: null` and refuses to guess, prompting the Reception Agent to ask the guest for suite confirmation.
-7. **Test Switch Integration:** Navigate to **Settings**, enter a Switch Room Webhook URL, and click *"Send Switch Probe Ping"* to demonstrate the honest `CONNECTED` vs `DISCONNECTED` verification engine.
+1. **Open the Team Collaboration Room:** Go to **Team Chat** to show the live operations room where authenticated human teammates and AI agents collaborate over WebSockets.
+2. **Execute the Room 204 Demonstration:** Click *"Run Room 204 Demonstration"*. Notice the prominent amber `[DEMO SCENARIO (ROOM 204)]` badges identifying the simulation scenario, as Central Operations AI decomposes the request into `#CAS-8201` and `#CAS-8202` and agents acknowledge.
+3. **Verify Physical Completion (Principle #8):** Click *"Sign Off"* on a task chip in the chat feed. Demonstrate that general updates cannot resolve a physical task without staff PIN authentication, in-suite checklist confirmation, and authorized sign-off.
+4. **Interactive Natural Language Inquiry:** Post a message as Front Desk: *"What is the status of Suite 412?"* and watch Central Operations AI query live state via Gemini AI and reply in real time.
+5. **Demonstrate Missing-Room Safeguard:** In **Guest Requests**, click the *"Emergency Service Failure with Missing Room Number"* preset. Observe how Central AI flags `detectedRoom: null` and refuses to guess, prompting the Reception Agent to ask the guest for suite confirmation.
+6. **Test Switch Integration:** In **Settings**, test a webhook endpoint and inspect how the system distinguishes authentic Switch protocol handshakes from unverified generic webhooks.

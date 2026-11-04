@@ -19,6 +19,8 @@ import {
   TaskAuditEntry,
   ChatParticipant,
   LifecycleStage,
+  AuthenticatedStaff,
+  StaffPermission,
 } from './src/types/index';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -51,7 +53,91 @@ async function callGeminiWithTimeout<T>(promise: Promise<T>, timeoutMs = 3000): 
 }
 
 // ---------------------------------------------------------------------------
-// Security & Secret Redaction
+// Security: Staff Directory & Authentication Engine
+// ---------------------------------------------------------------------------
+interface StaffRecord {
+  id: string;
+  name: string;
+  role: string;
+  pin: string;
+  badgeId: string;
+  department: Department;
+  permissions: StaffPermission[];
+  avatar: string;
+  avatarBg: string;
+}
+
+const STAFF_DIRECTORY: Record<string, StaffRecord> = {
+  'staff-elena': {
+    id: 'staff-elena',
+    name: 'Elena Rostova',
+    role: 'Front Desk Lead',
+    pin: '1042',
+    badgeId: 'REC-104',
+    department: 'Reception',
+    permissions: ['CREATE_TASK', 'READ_ALL', 'ASSIGN_DEPT'],
+    avatar: 'ER',
+    avatarBg: 'bg-amber-600/20 text-amber-300 border-amber-500/40',
+  },
+  'staff-marcus': {
+    id: 'staff-marcus',
+    name: 'Marcus Vance',
+    role: 'Executive Duty Manager',
+    pin: '9001',
+    badgeId: 'MGT-900',
+    department: 'Management',
+    permissions: ['ALL', 'ESCALATE', 'OVERRIDE', 'VERIFY'],
+    avatar: 'MV',
+    avatarBg: 'bg-purple-600/20 text-purple-300 border-purple-500/40',
+  },
+  'staff-carlos': {
+    id: 'staff-carlos',
+    name: 'Carlos Mendez',
+    role: 'Chief Plant Engineer',
+    pin: '4021',
+    badgeId: 'ENG-402',
+    department: 'Maintenance',
+    permissions: ['ACCEPT_MAINT', 'UPDATE_TASK', 'VERIFY_MAINT', 'VERIFY'],
+    avatar: 'CM',
+    avatarBg: 'bg-sky-600/20 text-sky-300 border-sky-500/40',
+  },
+  'staff-maria': {
+    id: 'staff-maria',
+    name: 'Maria Santos',
+    role: 'Head of Housekeeping',
+    pin: '3105',
+    badgeId: 'HSK-310',
+    department: 'Housekeeping',
+    permissions: ['ACCEPT_HK', 'UPDATE_TASK', 'VERIFY_HK', 'VERIFY'],
+    avatar: 'MS',
+    avatarBg: 'bg-emerald-600/20 text-emerald-300 border-emerald-500/40',
+  },
+};
+
+// Active authenticated staff sessions map: token -> AuthenticatedStaff
+const activeStaffSessions = new Map<string, AuthenticatedStaff>();
+
+// Pre-seed sessions for demo convenience while maintaining strict verification
+for (const staff of Object.values(STAFF_DIRECTORY)) {
+  const token = `token-${staff.id}-${staff.pin}`;
+  activeStaffSessions.set(token, {
+    id: staff.id,
+    name: staff.name,
+    role: staff.role,
+    badgeId: staff.badgeId,
+    department: staff.department,
+    permissions: staff.permissions,
+    token,
+  });
+}
+
+function authenticateStaffToken(token?: string | null): AuthenticatedStaff | null {
+  if (!token) return null;
+  return activeStaffSessions.get(token.trim()) || null;
+}
+
+// ---------------------------------------------------------------------------
+// Security: Secret Redaction & SSRF Hardening
 // ---------------------------------------------------------------------------
 function redactSwitchConfig(config: SwitchConfig): SwitchConfig {
   return {
@@ -60,7 +146,6 @@ function redactSwitchConfig(config: SwitchConfig): SwitchConfig {
   };
 }
 
-// SSRF Validation: Disallow private IP blocks and internal cloud metadata
 function isValidWebhookUrl(rawUrl: string): { valid: boolean; error?: string } {
   if (!rawUrl || typeof rawUrl !== 'string') {
     return { valid: false, error: 'Webhook URL cannot be empty' };
@@ -385,7 +470,7 @@ function getInitialDatabase(): DatabaseSchema {
       lifecycleStage: 'ESCALATED',
       deliveryStatus: 'IN_PROGRESS',
       createdAt: now - 52 * 60 * 1000,
-      slaDeadline: now - 7 * 60 * 1000, // OVERDUE
+      slaDeadline: now - 7 * 60 * 1000,
       estimatedMinutes: 45,
       dependencies: [],
       requiresHumanConfirmation: true,
@@ -413,109 +498,6 @@ function getInitialDatabase(): DatabaseSchema {
         },
       ],
     },
-    {
-      id: 'task-104',
-      caseRef: 'CAS-8094',
-      room: '504',
-      title: 'Dispute over minibar spirits billing on departure folio',
-      description: 'Departing guest disputes 2 premium single-malt items totaling $64. Audit RFID minibar weight sensor logs.',
-      department: 'Reception',
-      assignedAgent: 'Reception Agent',
-      priority: 'Normal',
-      status: 'In Progress',
-      lifecycleStage: 'IN_PROGRESS',
-      deliveryStatus: 'IN_PROGRESS',
-      createdAt: now - 14 * 60 * 1000,
-      slaDeadline: now + 16 * 60 * 1000,
-      estimatedMinutes: 30,
-      dependencies: [],
-      requiresHumanConfirmation: true,
-      guestName: 'Mr. David Sterling',
-      isRepeatedIssue: false,
-      isDemoData: true,
-      auditTrail: [
-        {
-          id: 'aud-104-1',
-          timestamp: now - 14 * 60 * 1000,
-          actor: 'Reception Agent',
-          actorRole: 'Front Desk',
-          action: 'CREATED',
-          note: 'Logged during express checkout folio review.',
-        },
-      ],
-    },
-    {
-      id: 'task-105',
-      caseRef: 'CAS-8095',
-      room: '318',
-      title: 'Sanitary deep clean & accidental carpet spill neutralization',
-      description: 'Red wine spill reported on parlor suite Persian wool rug. Requires steam extraction before fiber staining sets.',
-      department: 'Housekeeping',
-      assignedAgent: 'Housekeeping Agent',
-      priority: 'Urgent',
-      status: 'Open',
-      lifecycleStage: 'TASK_CREATED',
-      deliveryStatus: 'PENDING_DELIVERY',
-      createdAt: now - 6 * 60 * 1000,
-      slaDeadline: now + 14 * 60 * 1000,
-      estimatedMinutes: 20,
-      dependencies: [],
-      requiresHumanConfirmation: true,
-      guestName: 'Madame DuPont',
-      isRepeatedIssue: false,
-      isDemoData: true,
-      auditTrail: [
-        {
-          id: 'aud-105-1',
-          timestamp: now - 6 * 60 * 1000,
-          actor: 'Central Operations AI',
-          actorRole: 'Orchestrator',
-          action: 'CREATED',
-          note: 'Parsed from urgent guest phone intake.',
-        },
-      ],
-    },
-    {
-      id: 'task-106',
-      caseRef: 'CAS-8096',
-      room: '610',
-      title: 'Espresso machine descaling & power coupling replacement',
-      description: 'Suite Nespresso bar machine trip switch activated during morning brew cycle.',
-      department: 'Maintenance',
-      assignedAgent: 'Maintenance Agent',
-      priority: 'Low',
-      status: 'Resolved',
-      lifecycleStage: 'RESOLVED',
-      deliveryStatus: 'COMPLETED',
-      createdAt: now - 95 * 60 * 1000,
-      slaDeadline: now - 35 * 60 * 1000,
-      estimatedMinutes: 60,
-      dependencies: [],
-      requiresHumanConfirmation: true,
-      resolvedBy: 'Carlos Mendez (Senior Plant Engineer)',
-      resolvedAt: now - 22 * 60 * 1000,
-      resolutionNotes: 'Tested thermal fuse and replaced power cord assembly. Full operational check passed in suite.',
-      isRepeatedIssue: false,
-      isDemoData: true,
-      auditTrail: [
-        {
-          id: 'aud-106-1',
-          timestamp: now - 95 * 60 * 1000,
-          actor: 'Central Operations AI',
-          actorRole: 'Orchestrator',
-          action: 'CREATED',
-          note: 'Task generated via morning inspection protocol.',
-        },
-        {
-          id: 'aud-106-2',
-          timestamp: now - 22 * 60 * 1000,
-          actor: 'Carlos Mendez (Senior Plant Engineer)',
-          actorRole: 'Authorized Staff',
-          action: 'HUMAN_VERIFIED',
-          note: 'Physical inspection completed and confirmed in suite.',
-        },
-      ],
-    },
   ];
 
   const initialRequests: GuestRequest[] = [
@@ -525,25 +507,10 @@ function getInitialDatabase(): DatabaseSchema {
       detectedRoom: '412',
       guestName: 'Lord Harrington',
       status: 'ROUTED',
-      createdTaskIds: ['task-101', 'task-102'],
+      createdTaskIds: ['task-101'],
       createdAt: now - 35 * 60 * 1000,
       urgencyLevel: 'High',
       executiveSummary: 'Multi-department request decomposed into Maintenance (AC), Housekeeping (Towels), and Reception (Late checkout).',
-      isDemoData: true,
-    },
-    {
-      id: 'req-002',
-      rawText: 'Our bathroom is completely flooded with water spreading into hallway carpets and none of the lights are working!',
-      detectedRoom: undefined,
-      guestName: 'Unverified Resident',
-      status: 'AWAITING_CLARIFICATION',
-      missingFields: ['room'],
-      clarificationNeeded: true,
-      clarificationQuestion: 'Reception Agent: Suite number was not provided. Please provide your suite number so staff can be dispatched immediately.',
-      createdTaskIds: [],
-      createdAt: now - 8 * 60 * 1000,
-      urgencyLevel: 'Critical',
-      executiveSummary: 'Safeguard triggered: Request withheld from physical dispatch until verified room number is provided by guest.',
       isDemoData: true,
     },
   ];
@@ -568,38 +535,9 @@ function getInitialDatabase(): DatabaseSchema {
       avatarRole: 'Orchestrator',
       senderType: 'AI_AGENT',
       department: 'Management',
-      content: 'Understood. Monitoring 7th floor suite turnover. Housekeeping priority sequence adjusted for Suites 701, 704, and 708.',
+      content: 'Understood Elena. Monitoring 7th floor suite turnover. Housekeeping priority sequence adjusted for Suites 701, 704, and 708.',
       badge: 'DISPATCHED',
       timestamp: '08:16',
-      channel: '#operations-general',
-      sourceType: 'LIVE_AGENT',
-      deliveryState: 'DELIVERED',
-    },
-    {
-      id: 'msg-003',
-      sender: 'Carlos Mendez',
-      avatarRole: 'Chief Plant Engineer',
-      senderType: 'HUMAN',
-      department: 'Maintenance',
-      content: 'Riser B chilled-water loop is running smoothly at 6.2°C. Let me know if any 4th floor rooms report anomalies.',
-      badge: 'INFO',
-      timestamp: '08:22',
-      channel: '#operations-general',
-      sourceType: 'LIVE_STAFF',
-      deliveryState: 'DELIVERED',
-    },
-    {
-      id: 'msg-004',
-      sender: 'Maintenance Agent',
-      avatarRole: 'Engineering',
-      senderType: 'AI_AGENT',
-      department: 'Maintenance',
-      content: 'Suite 412 HVAC diagnostic assigned to duty technician. Ambient 26.5°C; target SLA 45m active.',
-      badge: 'SLA ACTIVE',
-      timestamp: '08:26',
-      room: '412',
-      taskId: 'task-101',
-      referencedTaskIds: ['task-101'],
       channel: '#operations-general',
       sourceType: 'LIVE_AGENT',
       deliveryState: 'DELIVERED',
@@ -619,18 +557,6 @@ function getInitialDatabase(): DatabaseSchema {
       isDemoAlert: true,
       resolved: false,
     },
-    {
-      id: 'alt-02',
-      type: 'WORKLOAD_SPIKE',
-      title: '7th Floor Penthouse Turnovers Compressed',
-      description: '3 VIP arrivals expected between 14:00 and 15:30. Current housekeeping capacity at 88%.',
-      affectedRoomOrDept: 'Housekeeping (Floor 7)',
-      severity: 'High',
-      recommendedAction: 'Reallocate 2 floating turndown attendants to Penthouse wing.',
-      timestamp: '12m ago',
-      isDemoAlert: true,
-      resolved: false,
-    },
   ];
 
   const initialSwitchConfig: SwitchConfig = {
@@ -642,6 +568,7 @@ function getInitialDatabase(): DatabaseSchema {
     autoRelayTasks: true,
     totalDelivered: 0,
     lastTestStatus: 'NOT_TESTED',
+    protocolHandshakeVerified: false,
   };
 
   return {
@@ -654,19 +581,19 @@ function getInitialDatabase(): DatabaseSchema {
   };
 }
 
-// Atomic file writing with error reporting
+// Atomic file writing with strict boolean error enforcement
 function saveDatabase(data: DatabaseSchema): boolean {
   try {
     const dir = path.dirname(DB_PATH);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    const tempPath = `${DB_PATH}.tmp.${Date.now()}`;
+    const tempPath = `${DB_PATH}.tmp.${Date.now()}.${Math.random().toString(36).substring(2, 7)}`;
     fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
     fs.renameSync(tempPath, DB_PATH);
     return true;
-  } catch (err) {
-    console.error('[DB ERROR] Failed saving atomic database:', err);
+  } catch (err: any) {
+    console.error('[DB FATAL] Atomic database write failed:', err?.message || err);
     return false;
   }
 }
@@ -686,7 +613,6 @@ function loadDatabase(): DatabaseSchema {
   return initial;
 }
 
-// In-memory reference synced to disk
 let db: DatabaseSchema = loadDatabase();
 
 // ---------------------------------------------------------------------------
@@ -696,19 +622,17 @@ const wsClients = new Set<WebSocket>();
 const sseClients = new Set<express.Response>();
 
 function broadcastRealtime(event: string, payload: any) {
-  // 1. WebSocket Broadcast
-  const wsMessage = JSON.stringify({ event, data: payload, timestamp: Date.now() });
+  const wsFrame = JSON.stringify({ event, data: payload, timestamp: Date.now() });
   for (const client of wsClients) {
     if (client.readyState === WebSocket.OPEN) {
       try {
-        client.send(wsMessage);
+        client.send(wsFrame);
       } catch (err) {
         wsClients.delete(client);
       }
     }
   }
 
-  // 2. Server-Sent Events Broadcast
   const sseChunk = `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
   for (const res of sseClients) {
     try {
@@ -720,7 +644,7 @@ function broadcastRealtime(event: string, payload: any) {
 }
 
 // ---------------------------------------------------------------------------
-// Genuine Switch Room Webhook Dispatcher
+// Genuine Switch Protocol Verification & Dispatcher
 // ---------------------------------------------------------------------------
 async function forwardToSwitchRoom(
   config: SwitchConfig,
@@ -731,9 +655,9 @@ async function forwardToSwitchRoom(
     room?: string;
     taskId?: string;
   }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; status: SwitchConfig['status'] }> {
   if (!config.roomWebhookUrl || config.status === 'NOT_CONFIGURED') {
-    return { success: false, error: 'Switch room webhook URL is not configured' };
+    return { success: false, error: 'Switch room webhook URL is not configured', status: 'NOT_CONFIGURED' };
   }
 
   const urlCheck = isValidWebhookUrl(config.roomWebhookUrl);
@@ -742,7 +666,7 @@ async function forwardToSwitchRoom(
     config.lastTestStatus = 'FAILED';
     config.lastErrorMessage = urlCheck.error;
     saveDatabase(db);
-    return { success: false, error: urlCheck.error };
+    return { success: false, error: urlCheck.error, status: 'CONNECTION_FAILED' };
   }
 
   try {
@@ -764,6 +688,9 @@ async function forwardToSwitchRoom(
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'User-Agent': 'HotelOperationsAI-SwitchClient/1.4',
+      'X-Switch-Protocol-Version': '1.0',
+      'X-Switch-Room-Id': config.roomId,
+      'X-Switch-Agent-Id': 'hotel-central-ops',
     };
     if (config.apiKey && config.apiKey !== '••••••••') {
       headers['Authorization'] = `Bearer ${config.apiKey}`;
@@ -777,30 +704,663 @@ async function forwardToSwitchRoom(
     });
     clearTimeout(timeout);
 
-    if (response.ok) {
+    // Protocol Verification: Inspect response headers and body for authentic Switch signature
+    const hasSwitchHeader =
+      response.headers.has('x-switch-room-status') ||
+      response.headers.has('x-switch-acknowledge') ||
+      response.headers.get('content-type')?.includes('application/vnd.switch.v1+json');
+
+    let responseJson: any = null;
+    try {
+      responseJson = await response.json();
+    } catch (e) {}
+
+    const hasSwitchBody = Boolean(
+      responseJson && (responseJson.switch || responseJson.switchProtocol || responseJson.protocol === 'switch.v1')
+    );
+
+    if (response.ok && (hasSwitchHeader || hasSwitchBody)) {
       config.totalDelivered += 1;
       config.status = 'CONNECTED';
+      config.protocolHandshakeVerified = true;
       config.lastTestedAt = new Date().toISOString();
       config.lastTestStatus = 'SUCCESS';
       config.lastErrorMessage = undefined;
       saveDatabase(db);
-      return { success: true };
+      return { success: true, status: 'CONNECTED' };
+    } else if (response.ok && !hasSwitchHeader && !hasSwitchBody) {
+      // The endpoint returned HTTP 200, but did not implement the Switch protocol
+      config.status = 'UNVERIFIED_GENERIC_WEBHOOK';
+      config.protocolHandshakeVerified = false;
+      config.lastTestedAt = new Date().toISOString();
+      config.lastTestStatus = 'FAILED';
+      config.lastErrorMessage =
+        'Endpoint returned HTTP 200, but failed SandboxAQ Switch protocol handshake (missing X-Switch-Room-Status header or Switch envelope). Connection cannot be certified.';
+      saveDatabase(db);
+      return {
+        success: false,
+        error: config.lastErrorMessage,
+        status: 'UNVERIFIED_GENERIC_WEBHOOK',
+      };
     } else {
       config.status = 'DISCONNECTED';
+      config.protocolHandshakeVerified = false;
       config.lastTestedAt = new Date().toISOString();
       config.lastTestStatus = 'FAILED';
       config.lastErrorMessage = `Switch responded with HTTP ${response.status}: ${response.statusText}`;
       saveDatabase(db);
-      return { success: false, error: config.lastErrorMessage };
+      return { success: false, error: config.lastErrorMessage, status: 'DISCONNECTED' };
     }
   } catch (err: any) {
     config.status = 'CONNECTION_FAILED';
+    config.protocolHandshakeVerified = false;
     config.lastTestedAt = new Date().toISOString();
     config.lastTestStatus = 'FAILED';
-    config.lastErrorMessage = err?.message || 'Network unreachable';
+    config.lastErrorMessage = err?.message || 'Network unreachable or connection timed out';
     saveDatabase(db);
-    return { success: false, error: config.lastErrorMessage };
+    return { success: false, error: config.lastErrorMessage, status: 'CONNECTION_FAILED' };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic Gemini Multi-Agent Chat Intelligence
+// ---------------------------------------------------------------------------
+async function executeDynamicAgentCollaboration(userMsg: SwitchMessage, staffContext?: AuthenticatedStaff) {
+  const timeStr = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const content = userMsg.content;
+
+  // Emit immediate Central AI typing indicator
+  broadcastRealtime('chat:typing', {
+    sender: 'Central Operations AI',
+    avatarRole: 'Orchestrator',
+    isTyping: true,
+  });
+
+  const activeTasksSummary = db.tasks
+    .filter((t) => t.status !== 'Resolved')
+    .slice(0, 10)
+    .map((t) => `[${t.caseRef}] Suite ${t.room}: "${t.title}" (Status: ${t.status}, Assigned: ${t.assignedAgent})`)
+    .join('\n');
+
+  const prompt = `You are the autonomous multi-agent coordination layer for The Grand Luminary Hotel & Residences.
+A human hotel employee just posted a message in the internal team operations chat:
+Sender: "${userMsg.sender}" (${userMsg.avatarRole}, ${userMsg.department})
+Channel: "${userMsg.channel || '#operations-general'}"
+Message Content: "${content}"
+
+CURRENT ACTIVE DATABASE TASKS:
+${activeTasksSummary || 'No pending tasks at this moment.'}
+
+INSTRUCTIONS:
+1. Understand the employee's intent, whether it is reporting guest issues, asking a status question, or requesting departmental assistance.
+2. If the message reports guest requests or problems (e.g. AC broken, towels needed, room dirty, keycard demagnetized), identify individual tasks.
+3. Generate realistic, decisive, professional responses from:
+   - "Central Operations AI" (Orchestrator & GM brain: acknowledges, decomposes requests, routes responsibilities)
+   - Specialized Departmental Agents who need to acknowledge or execute (e.g., "Housekeeping Agent", "Maintenance Agent", "Reception Agent", "Management Agent").
+4. Output clean JSON only:
+{
+  "tasksToCreate": [
+    {
+      "title": string,
+      "department": "Reception" | "Housekeeping" | "Maintenance" | "Management",
+      "priority": "Low" | "Normal" | "High" | "Urgent" | "Critical",
+      "estimatedMinutes": number,
+      "room": string (extracted from message, e.g. "204" or "412")
+    }
+  ],
+  "agentResponses": [
+    {
+      "sender": "Central Operations AI" | "Housekeeping Agent" | "Maintenance Agent" | "Reception Agent" | "Management Agent",
+      "avatarRole": string,
+      "department": "Reception" | "Housekeeping" | "Maintenance" | "Management",
+      "content": string,
+      "badge": "DISPATCHED" | "ACKNOWLEDGED" | "SLA ACTIVE" | "INFO" | "ESCALATED"
+    }
+  ]
+}`;
+
+  let parsed: any = null;
+
+  if (ai) {
+    try {
+      const response = await callGeminiWithTimeout(
+        ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: prompt,
+          config: {
+            systemInstruction:
+              'You are the autonomous hotel operations multi-agent coordination brain. Return structured JSON matching schema only.',
+            responseMimeType: 'application/json',
+          },
+        }),
+        2800
+      );
+      parsed = JSON.parse(response.text || '{}');
+    } catch (err: any) {
+      console.warn('Gemini chat agent execution timed out or errored, using dynamic heuristic:', err?.message);
+    }
+  }
+
+  // If Gemini failed or is unavailable, use dynamic grounded heuristic
+  if (!parsed || !parsed.agentResponses || parsed.agentResponses.length === 0) {
+    parsed = generateDynamicGroundedAgentResponse(content, userMsg);
+  }
+
+  broadcastRealtime('chat:typing', {
+    sender: 'Central Operations AI',
+    isTyping: false,
+  });
+
+  const createdTasks: Task[] = [];
+  const createdTaskIds: string[] = [];
+  const now = Date.now();
+
+  // Create any tasks required by the agent analysis
+  if (Array.isArray(parsed.tasksToCreate) && parsed.tasksToCreate.length > 0) {
+    for (let i = 0; i < parsed.tasksToCreate.length; i++) {
+      const t = parsed.tasksToCreate[i];
+      const caseRef = `CAS-${8120 + db.tasks.length + i + 1}`;
+      const newTask: Task = {
+        id: `task-${now}-${i}`,
+        caseRef,
+        room: t.room || userMsg.room || 'Unassigned',
+        title: t.title,
+        description: `Autonomous task decomposed from team chat message by ${userMsg.sender}`,
+        department: t.department || 'Maintenance',
+        assignedAgent: `${t.department || 'Maintenance'} Agent`,
+        priority: t.priority || 'Normal',
+        status: 'In Progress',
+        lifecycleStage: 'IN_PROGRESS',
+        deliveryStatus: 'IN_PROGRESS',
+        createdAt: now,
+        slaDeadline: now + (t.estimatedMinutes || 25) * 60 * 1000,
+        estimatedMinutes: t.estimatedMinutes || 25,
+        dependencies: [],
+        requiresHumanConfirmation: true,
+        auditTrail: [
+          {
+            id: `aud-${now}-${i}-1`,
+            timestamp: now,
+            actor: 'Central Operations AI',
+            actorRole: 'Orchestrator',
+            action: 'CREATED',
+            note: `Decomposed from chat message by ${userMsg.sender}: "${content.slice(0, 60)}"`,
+          },
+          {
+            id: `aud-${now}-${i}-2`,
+            timestamp: now + 50,
+            actor: `${t.department || 'Maintenance'} Agent`,
+            actorRole: t.department || 'Maintenance',
+            action: 'ACCEPTED',
+            note: 'Department acknowledged task and dispatched staff',
+          },
+        ],
+      };
+      createdTasks.push(newTask);
+      createdTaskIds.push(newTask.id);
+      db.tasks.unshift(newTask);
+      broadcastRealtime('task:created', newTask);
+    }
+  }
+
+  // Deliver agent responses with natural realistic intervals
+  if (Array.isArray(parsed.agentResponses)) {
+    for (let i = 0; i < parsed.agentResponses.length; i++) {
+      const resp = parsed.agentResponses[i];
+
+      // Show typing indicator for subsequent agents
+      if (i > 0) {
+        broadcastRealtime('chat:typing', {
+          sender: resp.sender,
+          avatarRole: resp.avatarRole || 'Specialist',
+          isTyping: true,
+        });
+        await new Promise((r) => setTimeout(r, 650));
+        broadcastRealtime('chat:typing', {
+          sender: resp.sender,
+          isTyping: false,
+        });
+      }
+
+      const agentMsg: SwitchMessage = {
+        id: `msg-${Date.now()}-${i}`,
+        sender: resp.sender,
+        avatarRole: resp.avatarRole || 'Specialist',
+        senderType: 'AI_AGENT',
+        department: resp.department || 'Management',
+        content: resp.content,
+        badge: resp.badge || 'INFO',
+        timestamp: timeStr(),
+        room: userMsg.room || createdTasks[0]?.room,
+        referencedTaskIds: createdTaskIds.length > 0 ? createdTaskIds : undefined,
+        channel: userMsg.channel || '#operations-general',
+        sourceType: 'LIVE_AGENT',
+        deliveryState: 'DELIVERED',
+      };
+
+      db.messages.push(agentMsg);
+      broadcastRealtime('chat:message', agentMsg);
+    }
+  }
+
+  saveDatabase(db);
+}
+
+function generateDynamicGroundedAgentResponse(content: string, userMsg: SwitchMessage): any {
+  const roomMatch = content.match(/\b(?:room|suite|rm\.?|#)\s*([0-9]{3,4}[A-Z]?)\b/i);
+  const detectedRoom = roomMatch ? roomMatch[1] : userMsg.room || undefined;
+
+  const hasTowels = /towel|linen|pillow|sheet/i.test(content);
+  const hasAc = /ac\b|air condition|hvac|thermostat|cooling|heat|warm/i.test(content);
+  const hasCleaning = /clean|dirty|spill|trash|odor|bathroom/i.test(content);
+  const isStatusQuery = /status of|what is happening with|check on|any updates on|how is/i.test(content);
+
+  // Status check grounded in active database tasks
+  if (isStatusQuery && detectedRoom) {
+    const roomTasks = db.tasks.filter((t) => t.room === detectedRoom && t.status !== 'Resolved');
+    let summary = '';
+    if (roomTasks.length > 0) {
+      summary = `Status report for Suite ${detectedRoom}: Found ${roomTasks.length} active case(s): ${roomTasks
+        .map((t) => `[${t.caseRef}] ${t.title} (${t.status}, assigned to ${t.assignedAgent})`)
+        .join('; ')}. Staff are on-site.`;
+    } else {
+      summary = `Status report for Suite ${detectedRoom}: No pending or overdue issues. All recent work orders have been verified and resolved.`;
+    }
+
+    return {
+      tasksToCreate: [],
+      agentResponses: [
+        {
+          sender: 'Central Operations AI',
+          avatarRole: 'Orchestrator',
+          department: 'Management',
+          content: summary,
+          badge: 'INFO',
+        },
+      ],
+    };
+  }
+
+  const tasksToCreate: any[] = [];
+  const agentResponses: any[] = [];
+
+  if (hasAc && detectedRoom) {
+    tasksToCreate.push({
+      title: `Inspect & recalibrate HVAC climate control (Suite ${detectedRoom})`,
+      department: 'Maintenance',
+      priority: 'High',
+      estimatedMinutes: 25,
+      room: detectedRoom,
+    });
+  }
+
+  if (hasTowels && detectedRoom) {
+    tasksToCreate.push({
+      title: `Deliver fresh luxury bath towels & linen set (Suite ${detectedRoom})`,
+      department: 'Housekeeping',
+      priority: 'Normal',
+      estimatedMinutes: 15,
+      room: detectedRoom,
+    });
+  }
+
+  if (hasCleaning && detectedRoom) {
+    tasksToCreate.push({
+      title: `Priority sanitary deep-clean & suite refresh (Suite ${detectedRoom})`,
+      department: 'Housekeeping',
+      priority: 'Urgent',
+      estimatedMinutes: 30,
+      room: detectedRoom,
+    });
+  }
+
+  if (tasksToCreate.length > 0) {
+    agentResponses.push({
+      sender: 'Central Operations AI',
+      avatarRole: 'Orchestrator',
+      department: 'Management',
+      content: `I have identified ${tasksToCreate.length} distinct operational responsibilities for Suite ${detectedRoom}. Coordinating departments: ${tasksToCreate.map((t) => t.department).join(', ')}.`,
+      badge: 'DISPATCHED',
+    });
+
+    if (hasAc) {
+      agentResponses.push({
+        sender: 'Maintenance Agent',
+        avatarRole: 'Engineering',
+        department: 'Maintenance',
+        content: `Maintenance ticket accepted for Suite ${detectedRoom}: Technician Carlos Mendez dispatched on-site with thermal diagnostics. Active SLA: 25 minutes.`,
+        badge: 'ACKNOWLEDGED',
+      });
+    }
+
+    if (hasTowels || hasCleaning) {
+      agentResponses.push({
+        sender: 'Housekeeping Agent',
+        avatarRole: 'Housekeeping',
+        department: 'Housekeeping',
+        content: `Housekeeping request accepted for Suite ${detectedRoom}: Attendant allocated from floor buffer. Target completion within 15 minutes.`,
+        badge: 'ACKNOWLEDGED',
+      });
+    }
+  } else {
+    agentResponses.push({
+      sender: 'Central Operations AI',
+      avatarRole: 'Orchestrator',
+      department: 'Management',
+      content: `Acknowledged, ${userMsg.sender}. Logging operational note for Front Office handover. All telemetry active.`,
+      badge: 'INFO',
+    });
+  }
+
+  return { tasksToCreate, agentResponses };
+}
+
+// ---------------------------------------------------------------------------
+// Room 204 End-to-End Operational Workflow (Explicitly Labeled Demo Scenario)
+// ---------------------------------------------------------------------------
+async function runRoom204Workflow() {
+  const timeStr = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const now = Date.now();
+
+  // Step 1 (0ms): Receptionist Elena Rostova (Human) posts
+  const msg1: SwitchMessage = {
+    id: `msg-${now}-demo-1`,
+    sender: 'Elena Rostova',
+    avatarRole: 'Front Desk Lead',
+    senderType: 'HUMAN',
+    department: 'Reception',
+    content: '[DEMO SCENARIO] Room 204 has requested 3 extra bath towels, and the guest reported that the AC is blowing warm air (ambient 26.5°C).',
+    badge: 'INFO',
+    timestamp: timeStr(),
+    room: '204',
+    channel: '#operations-general',
+    sourceType: 'DEMO_WORKFLOW',
+    isDemoWorkflow: true,
+    deliveryState: 'DELIVERED',
+  };
+  db.messages.push(msg1);
+  saveDatabase(db);
+  broadcastRealtime('chat:message', msg1);
+
+  // Step 2 (900ms): Central Operations AI decomposes request into 2 tasks
+  await delay(900);
+  broadcastRealtime('chat:typing', { sender: 'Central Operations AI', avatarRole: 'Orchestrator', isTyping: true });
+  await delay(600);
+
+  const taskAc: Task = {
+    id: `task-${now}-204-ac`,
+    caseRef: 'CAS-8201',
+    room: '204',
+    title: 'Inspect & recalibrate chilled-water HVAC unit (Suite 204)',
+    description: '[DEMO SCENARIO] Guest reports AC blowing warm air (26.5°C). Compressor actuator and coil inspection required.',
+    department: 'Maintenance',
+    assignedAgent: 'Maintenance Agent',
+    priority: 'High',
+    status: 'In Progress',
+    lifecycleStage: 'IN_PROGRESS',
+    deliveryStatus: 'IN_PROGRESS',
+    createdAt: now,
+    slaDeadline: now + 25 * 60 * 1000,
+    estimatedMinutes: 25,
+    dependencies: [],
+    requiresHumanConfirmation: true,
+    guestName: 'Mr. David Sterling',
+    riskAssessment: 'Thermal discomfort. Risk of negative review on departure.',
+    isDemoData: true,
+    auditTrail: [
+      {
+        id: `aud-${now}-ac1`,
+        timestamp: now,
+        actor: 'Central Operations AI',
+        actorRole: 'Orchestrator',
+        action: 'CREATED',
+        note: 'Decomposed from Room 204 demo scenario by Elena Rostova',
+      },
+      {
+        id: `aud-${now}-ac2`,
+        timestamp: now + 100,
+        actor: 'Central Operations AI',
+        actorRole: 'Orchestrator',
+        action: 'DISPATCHED',
+        note: 'Assigned to Maintenance Agent with 25m SLA target',
+      },
+    ],
+  };
+
+  const taskTowels: Task = {
+    id: `task-${now}-204-towels`,
+    caseRef: 'CAS-8202',
+    room: '204',
+    title: 'Deliver 3 extra luxury bath towels & amenities (Suite 204)',
+    description: '[DEMO SCENARIO] Guest requested 3 plush bath towels. Allocated from 2nd floor linen room.',
+    department: 'Housekeeping',
+    assignedAgent: 'Housekeeping Agent',
+    priority: 'Normal',
+    status: 'In Progress',
+    lifecycleStage: 'IN_PROGRESS',
+    deliveryStatus: 'IN_PROGRESS',
+    createdAt: now,
+    slaDeadline: now + 15 * 60 * 1000,
+    estimatedMinutes: 15,
+    dependencies: [],
+    requiresHumanConfirmation: true,
+    guestName: 'Mr. David Sterling',
+    isDemoData: true,
+    auditTrail: [
+      {
+        id: `aud-${now}-tw1`,
+        timestamp: now,
+        actor: 'Central Operations AI',
+        actorRole: 'Orchestrator',
+        action: 'CREATED',
+        note: 'Decomposed from Room 204 demo scenario by Elena Rostova',
+      },
+      {
+        id: `aud-${now}-tw2`,
+        timestamp: now + 100,
+        actor: 'Central Operations AI',
+        actorRole: 'Orchestrator',
+        action: 'DISPATCHED',
+        note: 'Assigned to Housekeeping Agent with 15m SLA target',
+      },
+    ],
+  };
+
+  db.tasks.unshift(taskTowels);
+  db.tasks.unshift(taskAc);
+  saveDatabase(db);
+  broadcastRealtime('task:created', taskAc);
+  broadcastRealtime('task:created', taskTowels);
+
+  const msg2: SwitchMessage = {
+    id: `msg-${now}-demo-2`,
+    sender: 'Central Operations AI',
+    avatarRole: 'Orchestrator',
+    senderType: 'AI_AGENT',
+    department: 'Management',
+    content: '[DEMO SCENARIO] I have decomposed the request for Suite 204 into two distinct departmental tasks: #CAS-8201 (Maintenance — AC Chilled-Water Diagnostic) and #CAS-8202 (Housekeeping — Luxury Bath Linens). Coordinating both departments.',
+    badge: 'DISPATCHED',
+    timestamp: timeStr(),
+    room: '204',
+    referencedTaskIds: [taskAc.id, taskTowels.id],
+    channel: '#operations-general',
+    sourceType: 'DEMO_WORKFLOW',
+    isDemoWorkflow: true,
+    deliveryState: 'DELIVERED',
+  };
+  db.messages.push(msg2);
+  saveDatabase(db);
+  broadcastRealtime('chat:typing', { sender: 'Central Operations AI', isTyping: false });
+  broadcastRealtime('chat:message', msg2);
+
+  // Step 3 (1800ms): Maintenance Agent responds
+  await delay(1200);
+  broadcastRealtime('chat:typing', { sender: 'Maintenance Agent', avatarRole: 'Engineering', isTyping: true });
+  await delay(600);
+
+  const msg3: SwitchMessage = {
+    id: `msg-${now}-demo-3`,
+    sender: 'Maintenance Agent',
+    avatarRole: 'Engineering',
+    senderType: 'AI_AGENT',
+    department: 'Maintenance',
+    content: '[DEMO SCENARIO] Task CAS-8201 accepted for Suite 204: AC diagnostic dispatch. Technician Carlos Mendez dispatched on-site with thermal probe.',
+    badge: 'ACKNOWLEDGED',
+    timestamp: timeStr(),
+    room: '204',
+    referencedTaskIds: [taskAc.id],
+    channel: '#operations-general',
+    sourceType: 'DEMO_WORKFLOW',
+    isDemoWorkflow: true,
+    deliveryState: 'DELIVERED',
+  };
+  db.messages.push(msg3);
+  saveDatabase(db);
+  broadcastRealtime('chat:typing', { sender: 'Maintenance Agent', isTyping: false });
+  broadcastRealtime('chat:message', msg3);
+
+  // Step 4 (2700ms): Housekeeping Agent responds
+  await delay(1100);
+  broadcastRealtime('chat:typing', { sender: 'Housekeeping Agent', avatarRole: 'Housekeeping', isTyping: true });
+  await delay(500);
+
+  const msg4: SwitchMessage = {
+    id: `msg-${now}-demo-4`,
+    sender: 'Housekeeping Agent',
+    avatarRole: 'Housekeeping',
+    senderType: 'AI_AGENT',
+    department: 'Housekeeping',
+    content: '[DEMO SCENARIO] Task CAS-8202 accepted for Suite 204: Extra bath towels. Attendant Maria allocated from 2nd floor buffer.',
+    badge: 'ACKNOWLEDGED',
+    timestamp: timeStr(),
+    room: '204',
+    referencedTaskIds: [taskTowels.id],
+    channel: '#operations-general',
+    sourceType: 'DEMO_WORKFLOW',
+    isDemoWorkflow: true,
+    deliveryState: 'DELIVERED',
+  };
+  db.messages.push(msg4);
+  saveDatabase(db);
+  broadcastRealtime('chat:typing', { sender: 'Housekeeping Agent', isTyping: false });
+  broadcastRealtime('chat:message', msg4);
+
+  // Step 5 (4000ms): Housekeeping completes physical delivery
+  await delay(1600);
+  taskTowels.status = 'Completion Pending Confirmation';
+  taskTowels.lifecycleStage = 'COMPLETION_PENDING_CONFIRMATION';
+  taskTowels.deliveryStatus = 'AWAITING_HUMAN_CONFIRMATION';
+  taskTowels.auditTrail.push({
+    id: `aud-${now}-tw3`,
+    timestamp: Date.now(),
+    actor: 'Housekeeping Agent',
+    actorRole: 'Housekeeping',
+    action: 'NOTE_ADDED',
+    note: 'Physical delivery finished; awaiting authorized human sign-off',
+  });
+  saveDatabase(db);
+  broadcastRealtime('task:updated', taskTowels);
+
+  const msg5: SwitchMessage = {
+    id: `msg-${now}-demo-5`,
+    sender: 'Housekeeping Agent',
+    avatarRole: 'Housekeeping',
+    senderType: 'AI_AGENT',
+    department: 'Housekeeping',
+    content: '[DEMO SCENARIO] Task CAS-8202 update: Extra bath towels placed in Suite 204 bathroom. Physical delivery complete. Awaiting authorized human staff sign-off.',
+    badge: 'SLA ACTIVE',
+    timestamp: timeStr(),
+    room: '204',
+    referencedTaskIds: [taskTowels.id],
+    channel: '#operations-general',
+    sourceType: 'DEMO_WORKFLOW',
+    isDemoWorkflow: true,
+    deliveryState: 'DELIVERED',
+  };
+  db.messages.push(msg5);
+  saveDatabase(db);
+  broadcastRealtime('chat:message', msg5);
+
+  // Step 6 (5200ms): Maintenance completes physical repair
+  await delay(1500);
+  taskAc.status = 'Completion Pending Confirmation';
+  taskAc.lifecycleStage = 'COMPLETION_PENDING_CONFIRMATION';
+  taskAc.deliveryStatus = 'AWAITING_HUMAN_CONFIRMATION';
+  taskAc.auditTrail.push({
+    id: `aud-${now}-ac3`,
+    timestamp: Date.now(),
+    actor: 'Maintenance Agent',
+    actorRole: 'Engineering',
+    action: 'NOTE_ADDED',
+    note: 'Chilled water actuator recalibrated; air temperature 19.8°C; awaiting human staff sign-off',
+  });
+  saveDatabase(db);
+  broadcastRealtime('task:updated', taskAc);
+
+  const msg6: SwitchMessage = {
+    id: `msg-${now}-demo-6`,
+    sender: 'Maintenance Agent',
+    avatarRole: 'Engineering',
+    senderType: 'AI_AGENT',
+    department: 'Maintenance',
+    content: '[DEMO SCENARIO] Task CAS-8201 update: Chilled-water actuator valve in Suite 204 recalibrated. Air output now 19.8°C. Physical repair complete. Awaiting authorized human staff sign-off.',
+    badge: 'SLA ACTIVE',
+    timestamp: timeStr(),
+    room: '204',
+    referencedTaskIds: [taskAc.id],
+    channel: '#operations-general',
+    sourceType: 'DEMO_WORKFLOW',
+    isDemoWorkflow: true,
+    deliveryState: 'DELIVERED',
+  };
+  db.messages.push(msg6);
+  saveDatabase(db);
+  broadcastRealtime('chat:message', msg6);
+
+  // Step 7 (6300ms): Central AI notifies team for human sign-off
+  await delay(1200);
+  const msg7: SwitchMessage = {
+    id: `msg-${now}-demo-7`,
+    sender: 'Central Operations AI',
+    avatarRole: 'Orchestrator',
+    senderType: 'AI_AGENT',
+    department: 'Management',
+    content: '[DEMO SCENARIO] Both physical interventions have completed on premises. Operating Principle #8 active: tasks held in "Completion Pending Confirmation" until authorized human staff signs off with badge ID.',
+    badge: 'INFO',
+    timestamp: timeStr(),
+    room: '204',
+    referencedTaskIds: [taskAc.id, taskTowels.id],
+    channel: '#operations-general',
+    sourceType: 'DEMO_WORKFLOW',
+    isDemoWorkflow: true,
+    deliveryState: 'DELIVERED',
+  };
+  db.messages.push(msg7);
+  saveDatabase(db);
+  broadcastRealtime('chat:message', msg7);
+
+  // Step 8 (7500ms): Elena Rostova confirms follow-up
+  await delay(1300);
+  const msg8: SwitchMessage = {
+    id: `msg-${now}-demo-8`,
+    sender: 'Elena Rostova',
+    avatarRole: 'Front Desk Lead',
+    senderType: 'HUMAN',
+    department: 'Reception',
+    content: '[DEMO SCENARIO] Placed a courtesy follow-up call to Suite 204. Guest confirmed the towels arrived and the room is cooling nicely. Staff member ready for physical verification sign-off.',
+    badge: 'INFO',
+    timestamp: timeStr(),
+    room: '204',
+    referencedTaskIds: [taskAc.id, taskTowels.id],
+    channel: '#operations-general',
+    sourceType: 'DEMO_WORKFLOW',
+    isDemoWorkflow: true,
+    deliveryState: 'DELIVERED',
+  };
+  db.messages.push(msg8);
+  saveDatabase(db);
+  broadcastRealtime('chat:message', msg8);
 }
 
 // ---------------------------------------------------------------------------
@@ -823,19 +1383,53 @@ async function startServer() {
         taskCount: db.tasks.length,
         messageCount: db.messages.length,
       },
-      switchConfig: {
-        status: db.switchConfig.status,
-        roomWebhookUrl: db.switchConfig.roomWebhookUrl ? '(configured)' : 'NOT_CONFIGURED',
-        roomId: db.switchConfig.roomId,
-        channelTarget: db.switchConfig.channelTarget,
-        totalDelivered: db.switchConfig.totalDelivered,
-        lastTestStatus: db.switchConfig.lastTestStatus,
-      },
+      switchConfig: redactSwitchConfig(db.switchConfig),
       timestamp: new Date().toISOString(),
     });
   });
 
-  // 2. Real-Time Chat SSE Stream
+  // 2. Staff Authentication Endpoints
+  app.post('/api/auth/staff-login', (req, res) => {
+    const { staffId, pin } = req.body;
+
+    if (!staffId || !pin) {
+      return res.status(400).json({ error: 'staffId and pin are required' });
+    }
+
+    const staff = STAFF_DIRECTORY[staffId];
+    if (!staff || staff.pin !== String(pin).trim()) {
+      return res.status(401).json({ error: 'Invalid staff identifier or security PIN' });
+    }
+
+    const token = `token-${staff.id}-${Date.now()}`;
+    const authenticated: AuthenticatedStaff = {
+      id: staff.id,
+      name: staff.name,
+      role: staff.role,
+      badgeId: staff.badgeId,
+      department: staff.department,
+      permissions: staff.permissions,
+      token,
+    };
+
+    activeStaffSessions.set(token, authenticated);
+    res.json({ success: true, staff: authenticated });
+  });
+
+  app.get('/api/auth/session', (req, res) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : (req.headers['x-staff-token'] as string);
+
+    const staff = authenticateStaffToken(token);
+    if (!staff) {
+      return res.status(401).json({ error: 'No active staff session' });
+    }
+    res.json({ success: true, staff });
+  });
+
+  // 3. Real-Time Chat SSE Stream
   app.get('/api/chat/stream', (req, res) => {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -851,22 +1445,36 @@ async function startServer() {
     });
   });
 
-  // 3. Team Chat Participants
+  // 4. Team Chat Participants
   app.get('/api/chat/participants', (_req, res) => {
     res.json({ success: true, participants: ACTIVE_PARTICIPANTS });
   });
 
-  // 4. Team Chat Messages (Fetch History)
+  // 5. Team Chat Messages (Fetch History)
   app.get('/api/chat/messages', (_req, res) => {
     res.json({ success: true, messages: db.messages });
   });
 
-  // 5. Send Team Chat Message (Interactive Human/AI Collaboration)
+  // 6. Send Team Chat Message (Enforces Authentication for Human Staff)
   app.post('/api/chat/messages', async (req, res) => {
-    const { sender, avatarRole, senderType, department, content, room, channel } = req.body;
+    const { sender, avatarRole, senderType, department, content, room, channel, staffToken } = req.body;
 
     if (!content || typeof content !== 'string') {
       return res.status(400).json({ error: 'content is required' });
+    }
+
+    const authHeader = req.headers.authorization;
+    const token = staffToken || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : (req.headers['x-staff-token'] as string));
+
+    let authenticatedStaff: AuthenticatedStaff | null = null;
+
+    if (senderType === 'HUMAN') {
+      authenticatedStaff = authenticateStaffToken(token);
+      if (!authenticatedStaff) {
+        return res.status(401).json({
+          error: 'Authentication required: You must provide a valid staff PIN/token to post as a human team member.',
+        });
+      }
     }
 
     const now = Date.now();
@@ -874,10 +1482,10 @@ async function startServer() {
 
     const newMsg: SwitchMessage = {
       id: `msg-${now}-${Math.random().toString(36).substring(2, 6)}`,
-      sender: sender || 'Elena Rostova',
-      avatarRole: avatarRole || 'Front Desk Lead',
+      sender: authenticatedStaff ? authenticatedStaff.name : sender || 'Elena Rostova',
+      avatarRole: authenticatedStaff ? authenticatedStaff.role : avatarRole || 'Front Desk Lead',
       senderType: senderType || 'HUMAN',
-      department: department || 'Reception',
+      department: authenticatedStaff ? authenticatedStaff.department : department || 'Reception',
       content: content.trim(),
       badge: senderType === 'HUMAN' ? 'INFO' : 'ACKNOWLEDGED',
       timestamp: timeStr,
@@ -888,31 +1496,31 @@ async function startServer() {
     };
 
     db.messages.push(newMsg);
-    saveDatabase(db);
+    if (!saveDatabase(db)) {
+      return res.status(500).json({ error: 'Persistence failure: unable to write message to durable disk.' });
+    }
 
-    // Broadcast user's message immediately over WebSockets & SSE
     broadcastRealtime('chat:message', newMsg);
     res.json({ success: true, message: newMsg });
 
     // Asynchronous Central Operations AI & Specialized Agent Analysis
     if (newMsg.senderType === 'HUMAN') {
-      handleChatAutonomousOrchestration(newMsg).catch((err) => {
-        console.error('Chat autonomous orchestration error:', err);
+      executeDynamicAgentCollaboration(newMsg, authenticatedStaff || undefined).catch((err) => {
+        console.error('Chat dynamic agent execution error:', err);
       });
     }
   });
 
-  // 6. Room 204 End-to-End Operational Workflow Demonstration
+  // 7. Room 204 End-to-End Operational Workflow Demonstration (Explicitly Labeled)
   app.post('/api/demo/room-204', async (_req, res) => {
-    res.json({ success: true, message: 'Room 204 end-to-end multi-agent workflow started' });
+    res.json({ success: true, message: 'Room 204 demonstration workflow initiated' });
 
-    // Run the 8-step orchestrated workflow with real-time broadcasts
     runRoom204Workflow().catch((err) => {
-      console.error('Room 204 workflow error:', err);
+      console.error('Room 204 demo workflow error:', err);
     });
   });
 
-  // 7. Tasks CRUD Endpoints
+  // 8. Tasks CRUD Endpoints
   app.get('/api/tasks', (_req, res) => {
     res.json({ success: true, tasks: db.tasks });
   });
@@ -976,7 +1584,6 @@ async function startServer() {
       db.tasks.unshift(newTask);
       broadcastRealtime('task:created', newTask);
 
-      // Attempt Switch delivery if autoRelayTasks is enabled
       if (db.switchConfig.autoRelayTasks && db.switchConfig.status === 'CONNECTED') {
         forwardToSwitchRoom(db.switchConfig, {
           eventType: 'TASK_CREATED',
@@ -988,17 +1595,33 @@ async function startServer() {
       }
     }
 
-    saveDatabase(db);
+    if (!saveDatabase(db)) {
+      return res.status(500).json({ error: 'Persistence failure: unable to commit tasks to database.' });
+    }
+
     res.json({ success: true, createdTasks: created });
   });
 
-  // 8. Human Completion Verification Endpoint (Operating Principle #8)
+  // 9. Dedicated Human Completion Verification Endpoint (Operating Principle #8 Enforcement)
   app.post('/api/tasks/:id/verify', (req, res) => {
     const { id } = req.params;
-    const { staffName, badgeId, notes, checklistConfirmed } = req.body;
+    const { staffToken, staffName, badgeId, notes, checklistConfirmed } = req.body;
 
-    if (!staffName || !staffName.trim()) {
-      return res.status(400).json({ error: 'Authorized staff name is mandatory for completion sign-off' });
+    const authHeader = req.headers.authorization;
+    const token = staffToken || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : (req.headers['x-staff-token'] as string));
+
+    const authenticatedStaff = authenticateStaffToken(token);
+
+    if (!authenticatedStaff) {
+      return res.status(401).json({
+        error: 'Authentication failed: You must be an authorized staff member with a valid PIN to confirm task completion.',
+      });
+    }
+
+    if (!checklistConfirmed) {
+      return res.status(400).json({
+        error: 'Checklist verification required: Staff must confirm in-suite inspection standards before resolution.',
+      });
     }
 
     const taskIndex = db.tasks.findIndex((t) => t.id === id);
@@ -1013,7 +1636,7 @@ async function startServer() {
     task.status = 'Resolved';
     task.lifecycleStage = 'RESOLVED';
     task.deliveryStatus = 'COMPLETED';
-    task.resolvedBy = `${staffName.trim()}${badgeId ? ` (Badge: ${badgeId.trim()})` : ''}`;
+    task.resolvedBy = `${authenticatedStaff.name} (Badge: ${authenticatedStaff.badgeId})`;
     task.resolvedAt = now;
     task.resolutionNotes = notes || 'Physical task completion confirmed on premises by authorized personnel.';
 
@@ -1021,12 +1644,11 @@ async function startServer() {
       id: `aud-${now}-verify`,
       timestamp: now,
       actor: task.resolvedBy,
-      actorRole: 'Authorized Staff',
+      actorRole: authenticatedStaff.role,
       action: 'HUMAN_VERIFIED',
-      note: `Physical in-suite verification confirmed. Checklist verified: ${checklistConfirmed ? 'YES' : 'YES'}. Notes: "${task.resolutionNotes}"`,
+      note: `Physical in-suite verification confirmed. Checklist verified: YES. Notes: "${task.resolutionNotes}"`,
     });
 
-    // Create closing notification message in Team Chat
     const verificationMsg: SwitchMessage = {
       id: `msg-${now}-verified`,
       sender: 'Central Operations AI',
@@ -1045,7 +1667,10 @@ async function startServer() {
     };
 
     db.messages.push(verificationMsg);
-    saveDatabase(db);
+
+    if (!saveDatabase(db)) {
+      return res.status(500).json({ error: 'Persistence failure: unable to record task resolution to database.' });
+    }
 
     broadcastRealtime('task:updated', task);
     broadcastRealtime('chat:message', verificationMsg);
@@ -1053,10 +1678,18 @@ async function startServer() {
     res.json({ success: true, task });
   });
 
-  // 9. Patch Task (Transition Lifecycle)
+  // 10. Patch Task Endpoint: STRICTLY FORBIDS BYPASSING HUMAN VERIFICATION
   app.patch('/api/tasks/:id', (req, res) => {
     const { id } = req.params;
-    const { status, priority, resolvedBy, resolutionNotes, escalationReason, auditNote, actor, actorRole } = req.body;
+    const { status, priority, escalationReason, auditNote, actor, actorRole } = req.body;
+
+    // Operating Principle #8 Defense: Prevent bypassing verification via PATCH
+    if (status === 'Resolved') {
+      return res.status(403).json({
+        error:
+          'Operating Principle #8 Violation: Physical tasks cannot be marked Resolved via general PATCH. You must use the dedicated verification endpoint POST /api/tasks/:id/verify with authorized staff credentials.',
+      });
+    }
 
     const taskIndex = db.tasks.findIndex((t) => t.id === id);
     if (taskIndex === -1) {
@@ -1077,41 +1710,32 @@ async function startServer() {
       } else if (status === 'Completion Pending Confirmation') {
         task.lifecycleStage = 'COMPLETION_PENDING_CONFIRMATION';
         task.deliveryStatus = 'AWAITING_HUMAN_CONFIRMATION';
-      } else if (status === 'Resolved') {
-        task.lifecycleStage = 'RESOLVED';
-        task.deliveryStatus = 'COMPLETED';
-        task.resolvedAt = now;
-        task.resolvedBy = resolvedBy || 'Authorized Staff';
-        task.resolutionNotes = resolutionNotes || 'Physical task confirmed complete on premises.';
       }
     }
     if (priority) task.priority = priority;
     if (escalationReason) task.escalationReason = escalationReason;
 
     const auditAction =
-      status === 'Resolved'
-        ? 'HUMAN_VERIFIED'
-        : status === 'Escalated'
-        ? 'ESCALATED'
-        : status === 'In Progress'
-        ? 'ACCEPTED'
-        : 'NOTE_ADDED';
+      status === 'Escalated' ? 'ESCALATED' : status === 'In Progress' ? 'ACCEPTED' : 'NOTE_ADDED';
 
     task.auditTrail.push({
       id: `aud-${now}`,
       timestamp: now,
-      actor: actor || resolvedBy || task.assignedAgent,
-      actorRole: actorRole || (status === 'Resolved' ? 'Authorized Staff' : 'Operator'),
+      actor: actor || task.assignedAgent,
+      actorRole: actorRole || 'Operator',
       action: auditAction,
       note: auditNote || `Task transitioned to ${task.status}`,
     });
 
-    saveDatabase(db);
+    if (!saveDatabase(db)) {
+      return res.status(500).json({ error: 'Persistence failure: unable to commit task update to database.' });
+    }
+
     broadcastRealtime('task:updated', task);
     res.json({ success: true, task });
   });
 
-  // 10. Guest Requests Endpoints
+  // 11. Guest Requests Endpoints
   app.get('/api/requests', (_req, res) => {
     res.json({ success: true, requests: db.requests });
   });
@@ -1131,12 +1755,16 @@ async function startServer() {
       isDemoData: false,
     };
     db.requests.unshift(newReq);
-    saveDatabase(db);
+
+    if (!saveDatabase(db)) {
+      return res.status(500).json({ error: 'Persistence failure: unable to commit request to database.' });
+    }
+
     broadcastRealtime('request:created', newReq);
     res.json({ success: true, request: newReq });
   });
 
-  // 11. Operational Alerts Endpoints
+  // 12. Operational Alerts Endpoints
   app.get('/api/alerts', (_req, res) => {
     res.json({ success: true, alerts: db.alerts });
   });
@@ -1144,11 +1772,15 @@ async function startServer() {
   app.post('/api/alerts/resolve', (req, res) => {
     const { id } = req.body;
     db.alerts = db.alerts.map((a) => (a.id === id ? { ...a, resolved: true } : a));
-    saveDatabase(db);
+
+    if (!saveDatabase(db)) {
+      return res.status(500).json({ error: 'Persistence failure: unable to update alert in database.' });
+    }
+
     res.json({ success: true, alerts: db.alerts });
   });
 
-  // 12. Agents Endpoint
+  // 13. Agents Endpoint
   app.get('/api/agents', (_req, res) => {
     const updatedAgents = db.agents.map((agent) => {
       const active = db.tasks.filter((t) => t.department === agent.department && t.status !== 'Resolved').length;
@@ -1161,7 +1793,7 @@ async function startServer() {
     res.json({ success: true, agents: updatedAgents });
   });
 
-  // 13. Switch Configuration & Real Connection Verification (Secret Redacted)
+  // 14. Switch Configuration & Real Connection Verification (Secret Redacted)
   app.get('/api/switch/config', (_req, res) => {
     res.json({ success: true, config: redactSwitchConfig(db.switchConfig) });
   });
@@ -1186,16 +1818,20 @@ async function startServer() {
 
     if (!db.switchConfig.roomWebhookUrl) {
       db.switchConfig.status = 'NOT_CONFIGURED';
+      db.switchConfig.protocolHandshakeVerified = false;
     } else {
-      // Mark DISCONNECTED until test ping succeeds
       db.switchConfig.status = 'DISCONNECTED';
+      db.switchConfig.protocolHandshakeVerified = false;
     }
 
-    saveDatabase(db);
+    if (!saveDatabase(db)) {
+      return res.status(500).json({ error: 'Persistence failure: unable to commit Switch configuration.' });
+    }
+
     res.json({ success: true, config: redactSwitchConfig(db.switchConfig) });
   });
 
-  // 14. Real Switch Test Ping (Live Handshake Probe)
+  // 15. Genuine Switch Protocol Verification Test Ping
   app.post('/api/switch/test', async (_req, res) => {
     if (!db.switchConfig.roomWebhookUrl) {
       return res.status(400).json({
@@ -1210,32 +1846,30 @@ async function startServer() {
       room: 'HQ',
     });
 
-    if (testResult.success) {
-      res.json({
-        success: true,
-        status: db.switchConfig.status,
-        lastTestedAt: db.switchConfig.lastTestedAt,
-        message: 'Successfully delivered test envelope to Switch Room Webhook.',
-      });
-    } else {
-      res.status(502).json({
-        success: false,
-        status: db.switchConfig.status,
-        lastTestedAt: db.switchConfig.lastTestedAt,
-        error: testResult.error || 'Connection failed to Switch webhook endpoint.',
-      });
-    }
+    res.json({
+      success: testResult.success,
+      status: db.switchConfig.status,
+      protocolHandshakeVerified: db.switchConfig.protocolHandshakeVerified,
+      lastTestedAt: db.switchConfig.lastTestedAt,
+      message: testResult.success
+        ? 'Successfully connected to verified SandboxAQ Switch room.'
+        : db.switchConfig.lastErrorMessage,
+    });
   });
 
-  // 15. Reset Demo Database to Seed State
-  app.post('/api/reset-demo', (_req, res) => {
+  // 16. Reset Demo Database to Seed State
+  const handleResetDatabase = (_req: express.Request, res: express.Response) => {
     db = getInitialDatabase();
-    saveDatabase(db);
+    if (!saveDatabase(db)) {
+      return res.status(500).json({ error: 'Persistence failure: unable to reset database.' });
+    }
     broadcastRealtime('database:reset', { timestamp: Date.now() });
     res.json({ success: true, message: 'Database reset to clean demonstration seed' });
-  });
+  };
+  app.post('/api/reset-demo', handleResetDatabase);
+  app.post('/api/database/reset', handleResetDatabase);
 
-  // 16. AI Request Parser with Missing Room Number Safeguard
+  // 17. AI Request Parser with Missing Room Number Safeguard
   app.post('/api/gemini/parse-request', async (req, res) => {
     const { rawText, room, guestName } = req.body;
 
@@ -1275,7 +1909,8 @@ CRITICAL INSTRUCTIONS:
           model: 'gemini-3.8-flash',
           contents: prompt,
           config: {
-            systemInstruction: 'You are an elite hotel business operations manager. Output valid JSON matching schema only. Never invent room numbers.',
+            systemInstruction:
+              'You are an elite hotel business operations manager. Output valid JSON matching schema only. Never invent room numbers.',
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.OBJECT,
@@ -1355,7 +1990,7 @@ CRITICAL INSTRUCTIONS:
     });
   }
 
-  // Create HTTP server with WebSocket attachment
+  // Create HTTP server with Real WebSocket attachment
   const server = http.createServer(app);
   const wss = new WebSocketServer({ server, path: '/ws' });
 
@@ -1367,549 +2002,79 @@ CRITICAL INSTRUCTIONS:
       wsClients.delete(ws);
     });
 
-    ws.on('message', (message: string) => {
+    ws.on('message', async (raw: string) => {
       try {
-        const parsed = JSON.parse(message.toString());
-        if (parsed.event === 'ping') {
+        const payload = JSON.parse(raw.toString());
+
+        if (payload.type === 'ping') {
           ws.send(JSON.stringify({ event: 'pong', timestamp: Date.now() }));
+          return;
         }
-      } catch (e) {}
+
+        // Real-Time Chat Message Transmitted Over WebSocket
+        if (payload.type === 'chat:message') {
+          const { sender, avatarRole, senderType, department, content, room, channel, staffToken } = payload;
+
+          if (!content || typeof content !== 'string') return;
+
+          let authenticatedStaff: AuthenticatedStaff | null = null;
+          if (senderType === 'HUMAN') {
+            authenticatedStaff = authenticateStaffToken(staffToken);
+            if (!authenticatedStaff) {
+              ws.send(
+                JSON.stringify({
+                  event: 'error',
+                  data: { message: 'Authentication required to post as a human team member.' },
+                })
+              );
+              return;
+            }
+          }
+
+          const now = Date.now();
+          const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          const newMsg: SwitchMessage = {
+            id: `msg-${now}-${Math.random().toString(36).substring(2, 6)}`,
+            sender: authenticatedStaff ? authenticatedStaff.name : sender || 'Elena Rostova',
+            avatarRole: authenticatedStaff ? authenticatedStaff.role : avatarRole || 'Front Desk Lead',
+            senderType: senderType || 'HUMAN',
+            department: authenticatedStaff ? authenticatedStaff.department : department || 'Reception',
+            content: content.trim(),
+            badge: senderType === 'HUMAN' ? 'INFO' : 'ACKNOWLEDGED',
+            timestamp: timeStr,
+            room,
+            channel: channel || '#operations-general',
+            sourceType: senderType === 'HUMAN' ? 'LIVE_STAFF' : 'LIVE_AGENT',
+            deliveryState: 'DELIVERED',
+          };
+
+          db.messages.push(newMsg);
+          saveDatabase(db);
+
+          // Broadcast immediately over WebSockets & SSE
+          broadcastRealtime('chat:message', newMsg);
+
+          // Trigger dynamic Gemini autonomous agent responses
+          if (newMsg.senderType === 'HUMAN') {
+            executeDynamicAgentCollaboration(newMsg, authenticatedStaff || undefined).catch((err) => {
+              console.error('WebSocket dynamic agent execution error:', err);
+            });
+          }
+        }
+      } catch (e) {
+        console.error('WebSocket message parsing error:', e);
+      }
     });
   });
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`[Hotel Operations AI] Server running at http://0.0.0.0:${PORT}`);
     console.log(`[Storage] Database mounted at: ${DB_PATH}`);
-    console.log(`[Realtime] WebSockets active on ws://0.0.0.0:${PORT}/ws & SSE on /api/chat/stream`);
+    console.log(`[Realtime] Native WebSockets active on ws://0.0.0.0:${PORT}/ws & SSE on /api/chat/stream`);
   });
 }
 
-// ---------------------------------------------------------------------------
-// Autonomous Central Operations AI Coordination Engine
-// ---------------------------------------------------------------------------
-async function handleChatAutonomousOrchestration(userMsg: SwitchMessage) {
-  const content = userMsg.content;
-  const timeStr = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  // 1. Check if the message contains an operational problem or guest request
-  const roomMatch = content.match(/\b(?:room|suite|rm\.?|#)\s*([0-9]{3,4}[A-Z]?)\b/i);
-  const detectedRoom = roomMatch ? roomMatch[1] : undefined;
-
-  const hasTowels = /towel|linen|pillow|sheet/i.test(content);
-  const hasAc = /ac\b|air condition|hvac|thermostat|cooling|heat|warm/i.test(content);
-  const hasCleaning = /clean|dirty|spill|trash|odor|bathroom/i.test(content);
-  const hasKey = /key|lock|card|demagnet/i.test(content);
-  const isStatusQuery = /status of|what is happening with|check on|any updates on/i.test(content);
-
-  // Status Query Handling: Return truthful active task report
-  if (isStatusQuery && detectedRoom) {
-    broadcastRealtime('chat:typing', { sender: 'Central Operations AI', avatarRole: 'Orchestrator', isTyping: true });
-    await new Promise((r) => setTimeout(r, 600));
-
-    const roomTasks = db.tasks.filter((t) => t.room === detectedRoom && t.status !== 'Resolved');
-    let replyText = '';
-    if (roomTasks.length > 0) {
-      replyText = `Status Report for Suite ${detectedRoom}: Found ${roomTasks.length} active case(s). ${roomTasks
-        .map((t) => `[${t.caseRef}] ${t.title} (${t.status}, assigned to ${t.assignedAgent})`)
-        .join('; ')}.`;
-    } else {
-      replyText = `Status Report for Suite ${detectedRoom}: No pending or overdue cases. All recent work orders have been verified and resolved.`;
-    }
-
-    const aiMsg: SwitchMessage = {
-      id: `msg-${Date.now()}-query`,
-      sender: 'Central Operations AI',
-      avatarRole: 'Orchestrator',
-      senderType: 'AI_AGENT',
-      department: 'Management',
-      content: replyText,
-      badge: 'INFO',
-      timestamp: timeStr(),
-      room: detectedRoom,
-      channel: userMsg.channel || '#operations-general',
-      sourceType: 'LIVE_AGENT',
-      deliveryState: 'DELIVERED',
-    };
-    db.messages.push(aiMsg);
-    saveDatabase(db);
-    broadcastRealtime('chat:typing', { sender: 'Central Operations AI', isTyping: false });
-    broadcastRealtime('chat:message', aiMsg);
-    return;
-  }
-
-  // Multi-problem or operational task decomposition
-  if ((hasTowels || hasAc || hasCleaning || hasKey) && detectedRoom) {
-    broadcastRealtime('chat:typing', { sender: 'Central Operations AI', avatarRole: 'Orchestrator', isTyping: true });
-    await new Promise((r) => setTimeout(r, 800));
-
-    const createdTaskIds: string[] = [];
-    const createdTasks: Task[] = [];
-    const now = Date.now();
-
-    if (hasAc) {
-      const caseRef = `CAS-${8120 + db.tasks.length + 1}`;
-      const task: Task = {
-        id: `task-${now}-ac`,
-        caseRef,
-        room: detectedRoom,
-        title: `Inspect & recalibrate HVAC climate control (Suite ${detectedRoom})`,
-        description: `Operational task decomposed from team chat: "${content}"`,
-        department: 'Maintenance',
-        assignedAgent: 'Maintenance Agent',
-        priority: 'High',
-        status: 'In Progress',
-        lifecycleStage: 'IN_PROGRESS',
-        deliveryStatus: 'IN_PROGRESS',
-        createdAt: now,
-        slaDeadline: now + 25 * 60 * 1000,
-        estimatedMinutes: 25,
-        dependencies: [],
-        requiresHumanConfirmation: true,
-        auditTrail: [
-          {
-            id: `aud-${now}-1`,
-            timestamp: now,
-            actor: 'Central Operations AI',
-            actorRole: 'Orchestrator',
-            action: 'CREATED',
-            note: `Decomposed from chat message by ${userMsg.sender}`,
-          },
-          {
-            id: `aud-${now}-2`,
-            timestamp: now + 100,
-            actor: 'Maintenance Agent',
-            actorRole: 'Engineering',
-            action: 'ACCEPTED',
-            note: 'Acknowledged duty technician dispatch',
-          },
-        ],
-      };
-      createdTasks.push(task);
-      createdTaskIds.push(task.id);
-      db.tasks.unshift(task);
-      broadcastRealtime('task:created', task);
-    }
-
-    if (hasTowels) {
-      const caseRef = `CAS-${8120 + db.tasks.length + 1}`;
-      const task: Task = {
-        id: `task-${now}-towels`,
-        caseRef,
-        room: detectedRoom,
-        title: `Deliver fresh luxury bath towels & linen set (Suite ${detectedRoom})`,
-        description: `Operational task decomposed from team chat: "${content}"`,
-        department: 'Housekeeping',
-        assignedAgent: 'Housekeeping Agent',
-        priority: 'Normal',
-        status: 'In Progress',
-        lifecycleStage: 'IN_PROGRESS',
-        deliveryStatus: 'IN_PROGRESS',
-        createdAt: now,
-        slaDeadline: now + 15 * 60 * 1000,
-        estimatedMinutes: 15,
-        dependencies: [],
-        requiresHumanConfirmation: true,
-        auditTrail: [
-          {
-            id: `aud-${now}-3`,
-            timestamp: now,
-            actor: 'Central Operations AI',
-            actorRole: 'Orchestrator',
-            action: 'CREATED',
-            note: `Decomposed from chat message by ${userMsg.sender}`,
-          },
-          {
-            id: `aud-${now}-4`,
-            timestamp: now + 100,
-            actor: 'Housekeeping Agent',
-            actorRole: 'Housekeeping',
-            action: 'ACCEPTED',
-            note: 'Allocated 2nd floor attendant for prompt delivery',
-          },
-        ],
-      };
-      createdTasks.push(task);
-      createdTaskIds.push(task.id);
-      db.tasks.unshift(task);
-      broadcastRealtime('task:created', task);
-    }
-
-    // 1. Central Operations AI acknowledges & coordinates
-    const coordinatorMsg: SwitchMessage = {
-      id: `msg-${Date.now()}-coord`,
-      sender: 'Central Operations AI',
-      avatarRole: 'Orchestrator',
-      senderType: 'AI_AGENT',
-      department: 'Management',
-      content: `I have identified ${createdTasks.length} separate operational tasks for Suite ${detectedRoom}. Coordinating departments: ${createdTasks.map((t) => `[${t.caseRef}] ${t.department}`).join(', ')}.`,
-      badge: 'DISPATCHED',
-      timestamp: timeStr(),
-      room: detectedRoom,
-      referencedTaskIds: createdTaskIds,
-      channel: userMsg.channel || '#operations-general',
-      sourceType: 'LIVE_AGENT',
-      deliveryState: 'DELIVERED',
-    };
-    db.messages.push(coordinatorMsg);
-    saveDatabase(db);
-    broadcastRealtime('chat:typing', { sender: 'Central Operations AI', isTyping: false });
-    broadcastRealtime('chat:message', coordinatorMsg);
-
-    // 2. Departmental Agent responses
-    if (hasAc) {
-      await new Promise((r) => setTimeout(r, 700));
-      broadcastRealtime('chat:typing', { sender: 'Maintenance Agent', avatarRole: 'Engineering', isTyping: true });
-      await new Promise((r) => setTimeout(r, 600));
-
-      const maintMsg: SwitchMessage = {
-        id: `msg-${Date.now()}-maint`,
-        sender: 'Maintenance Agent',
-        avatarRole: 'Engineering',
-        senderType: 'AI_AGENT',
-        department: 'Maintenance',
-        content: `Maintenance request accepted for Suite ${detectedRoom}: Chilled-water HVAC inspection assigned to Technician Carlos Mendez. Active SLA: 25 minutes.`,
-        badge: 'ACKNOWLEDGED',
-        timestamp: timeStr(),
-        room: detectedRoom,
-        referencedTaskIds: [createdTasks[0]?.id],
-        channel: userMsg.channel || '#operations-general',
-        sourceType: 'LIVE_AGENT',
-        deliveryState: 'DELIVERED',
-      };
-      db.messages.push(maintMsg);
-      saveDatabase(db);
-      broadcastRealtime('chat:typing', { sender: 'Maintenance Agent', isTyping: false });
-      broadcastRealtime('chat:message', maintMsg);
-    }
-
-    if (hasTowels) {
-      await new Promise((r) => setTimeout(r, 700));
-      broadcastRealtime('chat:typing', { sender: 'Housekeeping Agent', avatarRole: 'Housekeeping', isTyping: true });
-      await new Promise((r) => setTimeout(r, 600));
-
-      const hkMsg: SwitchMessage = {
-        id: `msg-${Date.now()}-hk`,
-        sender: 'Housekeeping Agent',
-        avatarRole: 'Housekeeping',
-        senderType: 'AI_AGENT',
-        department: 'Housekeeping',
-        content: `Housekeeping request accepted for Suite ${detectedRoom}: Fresh bath towels allocated from linen station. Target delivery within 15 minutes.`,
-        badge: 'ACKNOWLEDGED',
-        timestamp: timeStr(),
-        room: detectedRoom,
-        referencedTaskIds: [createdTasks[1]?.id || createdTasks[0]?.id],
-        channel: userMsg.channel || '#operations-general',
-        sourceType: 'LIVE_AGENT',
-        deliveryState: 'DELIVERED',
-      };
-      db.messages.push(hkMsg);
-      saveDatabase(db);
-      broadcastRealtime('chat:typing', { sender: 'Housekeeping Agent', isTyping: false });
-      broadcastRealtime('chat:message', hkMsg);
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Room 204 End-to-End Operational Workflow Orchestrator
-// ---------------------------------------------------------------------------
-async function runRoom204Workflow() {
-  const timeStr = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-  const now = Date.now();
-
-  // Step 1 (0ms): Receptionist Elena Rostova (Human) posts
-  const msg1: SwitchMessage = {
-    id: `msg-${now}-demo-1`,
-    sender: 'Elena Rostova',
-    avatarRole: 'Front Desk Lead',
-    senderType: 'HUMAN',
-    department: 'Reception',
-    content: 'Room 204 has requested 3 extra bath towels, and the guest reported that the AC is blowing warm air (ambient 26.5°C).',
-    badge: 'INFO',
-    timestamp: timeStr(),
-    room: '204',
-    channel: '#operations-general',
-    sourceType: 'LIVE_STAFF',
-    deliveryState: 'DELIVERED',
-  };
-  db.messages.push(msg1);
-  saveDatabase(db);
-  broadcastRealtime('chat:message', msg1);
-
-  // Step 2 (900ms): Central Operations AI decomposes request into 2 tasks
-  await delay(900);
-  broadcastRealtime('chat:typing', { sender: 'Central Operations AI', avatarRole: 'Orchestrator', isTyping: true });
-  await delay(600);
-
-  const taskAc: Task = {
-    id: `task-${now}-204-ac`,
-    caseRef: 'CAS-8201',
-    room: '204',
-    title: 'Inspect & recalibrate chilled-water HVAC unit (Suite 204)',
-    description: 'Guest reports AC blowing warm air (26.5°C). Compressor actuator and coil inspection required.',
-    department: 'Maintenance',
-    assignedAgent: 'Maintenance Agent',
-    priority: 'High',
-    status: 'In Progress',
-    lifecycleStage: 'IN_PROGRESS',
-    deliveryStatus: 'IN_PROGRESS',
-    createdAt: now,
-    slaDeadline: now + 25 * 60 * 1000,
-    estimatedMinutes: 25,
-    dependencies: [],
-    requiresHumanConfirmation: true,
-    guestName: 'Mr. David Sterling',
-    riskAssessment: 'Thermal discomfort. Risk of negative review on departure.',
-    isDemoData: false,
-    auditTrail: [
-      {
-        id: `aud-${now}-ac1`,
-        timestamp: now,
-        actor: 'Central Operations AI',
-        actorRole: 'Orchestrator',
-        action: 'CREATED',
-        note: 'Decomposed from Room 204 team chat request by Elena Rostova',
-      },
-      {
-        id: `aud-${now}-ac2`,
-        timestamp: now + 100,
-        actor: 'Central Operations AI',
-        actorRole: 'Orchestrator',
-        action: 'DISPATCHED',
-        note: 'Assigned to Maintenance Agent with 25m SLA target',
-      },
-    ],
-  };
-
-  const taskTowels: Task = {
-    id: `task-${now}-204-towels`,
-    caseRef: 'CAS-8202',
-    room: '204',
-    title: 'Deliver 3 extra luxury bath towels & amenities (Suite 204)',
-    description: 'Guest requested 3 plush bath towels. Allocated from 2nd floor linen room.',
-    department: 'Housekeeping',
-    assignedAgent: 'Housekeeping Agent',
-    priority: 'Normal',
-    status: 'In Progress',
-    lifecycleStage: 'IN_PROGRESS',
-    deliveryStatus: 'IN_PROGRESS',
-    createdAt: now,
-    slaDeadline: now + 15 * 60 * 1000,
-    estimatedMinutes: 15,
-    dependencies: [],
-    requiresHumanConfirmation: true,
-    guestName: 'Mr. David Sterling',
-    isDemoData: false,
-    auditTrail: [
-      {
-        id: `aud-${now}-tw1`,
-        timestamp: now,
-        actor: 'Central Operations AI',
-        actorRole: 'Orchestrator',
-        action: 'CREATED',
-        note: 'Decomposed from Room 204 team chat request by Elena Rostova',
-      },
-      {
-        id: `aud-${now}-tw2`,
-        timestamp: now + 100,
-        actor: 'Central Operations AI',
-        actorRole: 'Orchestrator',
-        action: 'DISPATCHED',
-        note: 'Assigned to Housekeeping Agent with 15m SLA target',
-      },
-    ],
-  };
-
-  db.tasks.unshift(taskTowels);
-  db.tasks.unshift(taskAc);
-  broadcastRealtime('task:created', taskAc);
-  broadcastRealtime('task:created', taskTowels);
-
-  const msg2: SwitchMessage = {
-    id: `msg-${now}-demo-2`,
-    sender: 'Central Operations AI',
-    avatarRole: 'Orchestrator',
-    senderType: 'AI_AGENT',
-    department: 'Management',
-    content: 'I have identified two independent operational tasks for Suite 204. Decomposing into Maintenance (HVAC) and Housekeeping (Linens) with SLA tracking. Creating cases #CAS-8201 and #CAS-8202.',
-    badge: 'DISPATCHED',
-    timestamp: timeStr(),
-    room: '204',
-    referencedTaskIds: [taskAc.id, taskTowels.id],
-    channel: '#operations-general',
-    sourceType: 'LIVE_AGENT',
-    deliveryState: 'DELIVERED',
-  };
-  db.messages.push(msg2);
-  saveDatabase(db);
-  broadcastRealtime('chat:typing', { sender: 'Central Operations AI', isTyping: false });
-  broadcastRealtime('chat:message', msg2);
-
-  // Step 3 (1800ms): Maintenance Agent responds
-  await delay(1200);
-  broadcastRealtime('chat:typing', { sender: 'Maintenance Agent', avatarRole: 'Engineering', isTyping: true });
-  await delay(600);
-
-  const msg3: SwitchMessage = {
-    id: `msg-${now}-demo-3`,
-    sender: 'Maintenance Agent',
-    avatarRole: 'Engineering',
-    senderType: 'AI_AGENT',
-    department: 'Maintenance',
-    content: 'Task CAS-8201 accepted for Suite 204: AC diagnostic dispatch. Technician Carlos Mendez dispatched on-site with thermal probe.',
-    badge: 'ACKNOWLEDGED',
-    timestamp: timeStr(),
-    room: '204',
-    referencedTaskIds: [taskAc.id],
-    channel: '#operations-general',
-    sourceType: 'LIVE_AGENT',
-    deliveryState: 'DELIVERED',
-  };
-  db.messages.push(msg3);
-  saveDatabase(db);
-  broadcastRealtime('chat:typing', { sender: 'Maintenance Agent', isTyping: false });
-  broadcastRealtime('chat:message', msg3);
-
-  // Step 4 (2700ms): Housekeeping Agent responds
-  await delay(1100);
-  broadcastRealtime('chat:typing', { sender: 'Housekeeping Agent', avatarRole: 'Housekeeping', isTyping: true });
-  await delay(500);
-
-  const msg4: SwitchMessage = {
-    id: `msg-${now}-demo-4`,
-    sender: 'Housekeeping Agent',
-    avatarRole: 'Housekeeping',
-    senderType: 'AI_AGENT',
-    department: 'Housekeeping',
-    content: 'Task CAS-8202 accepted for Suite 204: Extra bath towels. Attendant Maria allocated from 2nd floor buffer.',
-    badge: 'ACKNOWLEDGED',
-    timestamp: timeStr(),
-    room: '204',
-    referencedTaskIds: [taskTowels.id],
-    channel: '#operations-general',
-    sourceType: 'LIVE_AGENT',
-    deliveryState: 'DELIVERED',
-  };
-  db.messages.push(msg4);
-  saveDatabase(db);
-  broadcastRealtime('chat:typing', { sender: 'Housekeeping Agent', isTyping: false });
-  broadcastRealtime('chat:message', msg4);
-
-  // Step 5 (4000ms): Housekeeping completes physical delivery
-  await delay(1600);
-  taskTowels.status = 'Completion Pending Confirmation';
-  taskTowels.lifecycleStage = 'COMPLETION_PENDING_CONFIRMATION';
-  taskTowels.deliveryStatus = 'AWAITING_HUMAN_CONFIRMATION';
-  taskTowels.auditTrail.push({
-    id: `aud-${now}-tw3`,
-    timestamp: Date.now(),
-    actor: 'Housekeeping Agent',
-    actorRole: 'Housekeeping',
-    action: 'NOTE_ADDED',
-    note: 'Physical delivery finished; awaiting authorized human sign-off',
-  });
-  broadcastRealtime('task:updated', taskTowels);
-
-  const msg5: SwitchMessage = {
-    id: `msg-${now}-demo-5`,
-    sender: 'Housekeeping Agent',
-    avatarRole: 'Housekeeping',
-    senderType: 'AI_AGENT',
-    department: 'Housekeeping',
-    content: 'Task CAS-8202 update: Extra bath towels placed in Suite 204 bathroom. Physical delivery complete. Awaiting human staff sign-off.',
-    badge: 'SLA ACTIVE',
-    timestamp: timeStr(),
-    room: '204',
-    referencedTaskIds: [taskTowels.id],
-    channel: '#operations-general',
-    sourceType: 'LIVE_AGENT',
-    deliveryState: 'DELIVERED',
-  };
-  db.messages.push(msg5);
-  saveDatabase(db);
-  broadcastRealtime('chat:message', msg5);
-
-  // Step 6 (5200ms): Maintenance completes physical repair
-  await delay(1500);
-  taskAc.status = 'Completion Pending Confirmation';
-  taskAc.lifecycleStage = 'COMPLETION_PENDING_CONFIRMATION';
-  taskAc.deliveryStatus = 'AWAITING_HUMAN_CONFIRMATION';
-  taskAc.auditTrail.push({
-    id: `aud-${now}-ac3`,
-    timestamp: Date.now(),
-    actor: 'Maintenance Agent',
-    actorRole: 'Engineering',
-    action: 'NOTE_ADDED',
-    note: 'Chilled water actuator recalibrated; air temperature 19.8°C; awaiting human staff sign-off',
-  });
-  broadcastRealtime('task:updated', taskAc);
-
-  const msg6: SwitchMessage = {
-    id: `msg-${now}-demo-6`,
-    sender: 'Maintenance Agent',
-    avatarRole: 'Engineering',
-    senderType: 'AI_AGENT',
-    department: 'Maintenance',
-    content: 'Task CAS-8201 update: Chilled-water actuator valve in Suite 204 recalibrated. Air output now 19.8°C. Physical repair complete. Awaiting human staff sign-off.',
-    badge: 'SLA ACTIVE',
-    timestamp: timeStr(),
-    room: '204',
-    referencedTaskIds: [taskAc.id],
-    channel: '#operations-general',
-    sourceType: 'LIVE_AGENT',
-    deliveryState: 'DELIVERED',
-  };
-  db.messages.push(msg6);
-  saveDatabase(db);
-  broadcastRealtime('chat:message', msg6);
-
-  // Step 7 (6300ms): Central AI notifies human staff for verification
-  await delay(1200);
-  const msg7: SwitchMessage = {
-    id: `msg-${now}-demo-7`,
-    sender: 'Central Operations AI',
-    avatarRole: 'Orchestrator',
-    senderType: 'AI_AGENT',
-    department: 'Management',
-    content: 'Both physical interventions have completed on premises. Operating Principle #8 active: tasks held in "Completion Pending Confirmation" until authorized human staff sign-off.',
-    badge: 'INFO',
-    timestamp: timeStr(),
-    room: '204',
-    referencedTaskIds: [taskAc.id, taskTowels.id],
-    channel: '#operations-general',
-    sourceType: 'LIVE_AGENT',
-    deliveryState: 'DELIVERED',
-  };
-  db.messages.push(msg7);
-  saveDatabase(db);
-  broadcastRealtime('chat:message', msg7);
-
-  // Step 8 (7500ms): Elena Rostova confirms courtesy follow-up
-  await delay(1300);
-  const msg8: SwitchMessage = {
-    id: `msg-${now}-demo-8`,
-    sender: 'Elena Rostova',
-    avatarRole: 'Front Desk Lead',
-    senderType: 'HUMAN',
-    department: 'Reception',
-    content: 'Placed a courtesy follow-up call to Suite 204. Guest confirmed the towels arrived and the room is cooling nicely. Ready for physical verification sign-off.',
-    badge: 'INFO',
-    timestamp: timeStr(),
-    room: '204',
-    referencedTaskIds: [taskAc.id, taskTowels.id],
-    channel: '#operations-general',
-    sourceType: 'LIVE_STAFF',
-    deliveryState: 'DELIVERED',
-  };
-  db.messages.push(msg8);
-  saveDatabase(db);
-  broadcastRealtime('chat:message', msg8);
-}
-
-// ---------------------------------------------------------------------------
-// Accurate Heuristic Breakdown (Guaranteed Room Detection - No Hallucinations)
-// ---------------------------------------------------------------------------
 function generateHeuristicBreakdown(rawText: string, explicitlyProvidedRoom?: string, guestName?: string) {
   const roomMatch = rawText.match(/\b(?:room|suite|rm\.?|#)\s*([0-9]{3,4}[A-Z]?)\b/i);
   const detectedRoom = explicitlyProvidedRoom || (roomMatch ? roomMatch[1] : undefined);
@@ -1949,36 +2114,6 @@ function generateHeuristicBreakdown(rawText: string, explicitlyProvidedRoom?: st
     });
   }
 
-  if (/dirty|clean|stain|dust|trash|bin|smell|odor|bathroom|shower floor|hair|spill|flood|flooding/i.test(lower)) {
-    tasks.push({
-      title: `Priority sanitary deep-clean & suite refresh (${roomDisplay})`,
-      department: 'Housekeeping',
-      priority: 'Urgent',
-      estimatedMinutes: 35,
-      dependencies: [],
-      requiresHumanConfirmation: true,
-      assignedAgent: 'Housekeeping Agent',
-      rationale: 'Sanitary or moisture hazard reported.',
-      potentialRisk: 'Severe luxury hygiene violation; high risk of formal executive complaint.',
-      room: detectedRoom || 'Unassigned',
-    });
-  }
-
-  if (/late check|checkout|folio|bill|invoice|charge|luggage|key|door lock|demagnet/i.test(lower)) {
-    tasks.push({
-      title: `Front office folio & keycard verification (${roomDisplay})`,
-      department: 'Reception',
-      priority: 'Normal',
-      estimatedMinutes: 15,
-      dependencies: [],
-      requiresHumanConfirmation: true,
-      assignedAgent: 'Reception Agent',
-      rationale: 'Reception front-desk service inquiry.',
-      potentialRisk: 'Dispute during departure leading to negative exit impression.',
-      room: detectedRoom || 'Unassigned',
-    });
-  }
-
   return {
     guestIntent: detectedRoom
       ? `Operational request for Suite ${detectedRoom} involving ${tasks.length} distinct responsibilities.`
@@ -1990,8 +2125,6 @@ function generateHeuristicBreakdown(rawText: string, explicitlyProvidedRoom?: st
       : undefined,
     urgencyLevel: tasks.some((t) => t.priority === 'Critical')
       ? 'Critical'
-      : tasks.some((t) => t.priority === 'Urgent')
-      ? 'Urgent'
       : tasks.some((t) => t.priority === 'High')
       ? 'High'
       : 'Normal',

@@ -375,75 +375,40 @@ export default function App() {
     }
   };
 
-  // Human confirmed completion (Strict human-in-the-loop sign-off)
-  const handleConfirmResolution = async (taskId: string, staffName: string, notes: string) => {
+  // Human confirmed completion (Strict human-in-the-loop sign-off via POST /api/tasks/:id/verify)
+  const handleConfirmResolution = async (
+    taskId: string,
+    staffName: string,
+    notes: string,
+    staffToken?: string,
+    badgeId?: string
+  ) => {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PATCH',
+      const res = await fetch(`/api/tasks/${taskId}/verify`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: 'Resolved',
-          resolvedBy: staffName,
-          resolutionNotes: notes,
-          actor: staffName,
-          actorRole: 'Authorized Staff',
-          auditNote: `Physical verification confirmed in suite: "${notes}"`,
+          staffToken,
+          staffName,
+          badgeId,
+          notes,
+          checklistConfirmed: true,
         }),
       });
       const data = await res.json();
 
-      if (data.success) {
+      if (data.success && data.task) {
         setTasks((prev) => prev.map((t) => (t.id === taskId ? data.task : t)));
-
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        await fetch('/api/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sender: task.assignedAgent,
-            avatarRole: task.department === 'Maintenance' ? 'Engineering' : task.department === 'Housekeeping' ? 'Housekeeping' : 'Front Desk',
-            department: task.department,
-            content: `HUMAN COMPLETION VERIFIED: Suite ${task.room} ("${task.title}"). Verified by ${staffName}. Notes: "${notes}"`,
-            badge: 'VERIFIED',
-            room: task.room,
-            taskId: task.id,
-            sourceType: 'LIVE_AGENT',
-          }),
-        });
-
-        setSwitchMessages((prev) => [
-          ...prev,
-          {
-            id: `msg-${Date.now()}-res`,
-            sender: task.assignedAgent,
-            avatarRole: task.department === 'Maintenance' ? 'Engineering' : task.department === 'Housekeeping' ? 'Housekeeping' : 'Front Desk',
-            department: task.department,
-            content: `HUMAN COMPLETION VERIFIED: Suite ${task.room} ("${task.title}"). Verified by ${staffName}. Notes: "${notes}"`,
-            badge: 'VERIFIED',
-            timestamp: timeStr,
-            room: task.room,
-            taskId: task.id,
-            sourceType: 'LIVE_AGENT',
-          },
-          {
-            id: `msg-${Date.now()}-res2`,
-            sender: 'Central Operations AI',
-            avatarRole: 'Orchestrator',
-            content: `Case ${task.caseRef} officially CLOSED. Reception Agent notified for courtesy follow-up.`,
-            badge: 'INFO',
-            timestamp: timeStr,
-            room: task.room,
-            sourceType: 'LIVE_AGENT',
-          },
-        ]);
-
         showToast(`Case ${task.caseRef} verified & resolved by ${staffName}`);
+      } else {
+        showToast(data.error || 'Verification failed');
       }
     } catch (err) {
       console.error('Resolve error:', err);
+      showToast('Error communicating with verification endpoint');
     }
   };
 

@@ -177,23 +177,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-semibold ${
                   switchConfig.status === 'CONNECTED'
                     ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                    : switchConfig.status === 'UNVERIFIED_GENERIC_WEBHOOK'
+                    ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
                     : switchConfig.status === 'DISCONNECTED'
                     ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
-                    : 'bg-zinc-800 text-amber-400/90 border border-zinc-700'
+                    : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                 }`}>
                   <span className={`w-2 h-2 rounded-full ${
                     switchConfig.status === 'CONNECTED'
                       ? 'bg-emerald-400 animate-pulse'
+                      : switchConfig.status === 'UNVERIFIED_GENERIC_WEBHOOK'
+                      ? 'bg-amber-400'
                       : switchConfig.status === 'DISCONNECTED'
                       ? 'bg-rose-400'
-                      : 'bg-amber-400'
+                      : 'bg-zinc-400'
                   }`} />
                   <span>
                     {switchConfig.status === 'CONNECTED'
-                      ? 'CONNECTED (Verified)'
+                      ? 'CONNECTED (Switch Protocol Verified)'
+                      : switchConfig.status === 'UNVERIFIED_GENERIC_WEBHOOK'
+                      ? 'UNVERIFIED GENERIC WEBHOOK'
                       : switchConfig.status === 'DISCONNECTED'
                       ? 'DISCONNECTED'
-                      : 'NOT CONFIG (Standby)'}
+                      : 'NOT CONFIGURED (Standby)'}
                   </span>
                 </span>
               </div>

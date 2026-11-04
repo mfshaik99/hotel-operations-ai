@@ -182,6 +182,30 @@ export interface SwitchProtocolPayload {
   acknowledgedByHuman: boolean;
 }
 
+export type StaffPermission =
+  | 'CREATE_TASK'
+  | 'READ_ALL'
+  | 'ASSIGN_DEPT'
+  | 'ACCEPT_MAINT'
+  | 'UPDATE_TASK'
+  | 'VERIFY_MAINT'
+  | 'ACCEPT_HK'
+  | 'VERIFY_HK'
+  | 'ESCALATE'
+  | 'OVERRIDE'
+  | 'VERIFY'
+  | 'ALL';
+
+export interface AuthenticatedStaff {
+  id: string;
+  name: string;
+  role: string;
+  badgeId: string;
+  department: Department;
+  permissions: StaffPermission[];
+  token: string;
+}
+
 export interface SwitchMessage {
   id: string;
   sender: string;
@@ -197,11 +221,17 @@ export interface SwitchMessage {
   channel?: string;
   sourceType: MessageSourceType;
   deliveryState?: 'DELIVERED' | 'PENDING' | 'FAILED' | 'LOCAL_MESH' | 'SENDING' | 'ACKNOWLEDGED';
+  isDemoWorkflow?: boolean;
   switchPayload?: SwitchProtocolPayload;
 }
 
 export interface SwitchConfig {
-  status: 'NOT_CONFIGURED' | 'DISCONNECTED' | 'CONNECTED' | 'CONNECTION_FAILED';
+  status:
+    | 'NOT_CONFIGURED'
+    | 'DISCONNECTED'
+    | 'CONNECTED'
+    | 'CONNECTION_FAILED'
+    | 'UNVERIFIED_GENERIC_WEBHOOK';
   roomWebhookUrl: string;
   roomId: string;
   apiKey: string; // Redacted when sent over wire
@@ -209,6 +239,7 @@ export interface SwitchConfig {
   lastTestedAt?: string;
   lastTestStatus?: 'SUCCESS' | 'FAILED' | 'NOT_TESTED';
   lastErrorMessage?: string;
+  protocolHandshakeVerified?: boolean;
   autoRelayTasks: boolean;
   totalDelivered: number;
 }

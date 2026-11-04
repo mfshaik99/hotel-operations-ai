@@ -6,8 +6,15 @@ interface HumanVerificationModalProps {
   task: Task | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirmResolution: (taskId: string, staffName: string, notes: string) => void;
+  onConfirmResolution: (taskId: string, staffName: string, notes: string, staffToken?: string, badgeId?: string) => void;
 }
+
+const AUTHORIZED_STAFF_MEMBERS = [
+  { id: 'staff-elena', name: 'Elena Rostova', role: 'Front Desk Lead', badgeId: 'FD-1042', pin: '1042', department: 'Reception' },
+  { id: 'staff-marcus', name: 'Marcus Vance', role: 'Duty Manager', badgeId: 'DM-9001', pin: '9001', department: 'Management' },
+  { id: 'staff-carlos', name: 'Carlos Mendez', role: 'Lead HVAC Engineer', badgeId: 'ENG-4021', pin: '4021', department: 'Maintenance' },
+  { id: 'staff-maria', name: 'Maria Santos', role: 'Housekeeping Supervisor', badgeId: 'HK-3105', pin: '3105', department: 'Housekeeping' },
+];
 
 export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
   task,
@@ -15,9 +22,10 @@ export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
   onClose,
   onConfirmResolution,
 }) => {
-  const [staffName, setStaffName] = useState('Elena Cruz (Duty Lead)');
-  const [employeeId, setEmployeeId] = useState('EMP-7409');
+  const [selectedStaffId, setSelectedStaffId] = useState('staff-elena');
+  const [enteredPin, setEnteredPin] = useState('1042');
   const [notes, setNotes] = useState('Physical service inspection complete. Tested and verified directly in suite.');
+  const [authError, setAuthError] = useState<string | null>(null);
   const [checklist, setChecklist] = useState({
     physicalInspectionDone: true,
     guestSafetyVerified: true,
@@ -26,79 +34,129 @@ export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
 
   if (!isOpen || !task) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const currentStaff = AUTHORIZED_STAFF_MEMBERS.find((s) => s.id === selectedStaffId) || AUTHORIZED_STAFF_MEMBERS[0];
+
+  const handleStaffChange = (staffId: string) => {
+    setSelectedStaffId(staffId);
+    const staff = AUTHORIZED_STAFF_MEMBERS.find((s) => s.id === staffId);
+    if (staff) {
+      setEnteredPin(staff.pin);
+      setAuthError(null);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!staffName.trim()) return;
-    const fullStaffSignature = `${staffName.trim()} [${employeeId || 'Verified Staff'}]`;
-    onConfirmResolution(task.id, fullStaffSignature, notes.trim());
-    onClose();
+    setAuthError(null);
+
+    // Validate PIN
+    if (enteredPin !== currentStaff.pin) {
+      setAuthError(`Invalid PIN for ${currentStaff.name}. Default demo PIN is ${currentStaff.pin}.`);
+      return;
+    }
+
+    try {
+      // Authenticate via official backend auth endpoint
+      const loginRes = await fetch('/api/auth/staff-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          staffId: currentStaff.id,
+          pin: enteredPin,
+        }),
+      });
+
+      const loginData = await loginRes.json();
+      if (!loginData.success) {
+        setAuthError(loginData.error || 'Staff authentication failed');
+        return;
+      }
+
+      const fullStaffSignature = `${currentStaff.name} [${currentStaff.badgeId}]`;
+      onConfirmResolution(task.id, fullStaffSignature, notes.trim(), loginData.token, currentStaff.badgeId);
+      onClose();
+    } catch (err: any) {
+      setAuthError(err?.message || 'Authentication error connecting to server');
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-7 text-slate-100">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md">
+      <div className="relative w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-7 text-zinc-100">
+        <div className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-100">
+              <h3 className="text-base font-bold text-zinc-100">
                 Human Completion Verification
               </h3>
-              <p className="text-xs text-slate-400">
-                Operating Principle #8: Physical tasks require authorized human sign-off.
+              <p className="text-xs text-zinc-400">
+                Operating Principle #8: Physical tasks require authorized human sign-off via POST /api/tasks/:id/verify.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Task Summary Banner */}
-        <div className="p-3.5 bg-slate-950/80 border border-slate-800/90 rounded-xl mb-5">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+        <div className="p-3.5 bg-zinc-950/80 border border-zinc-800/90 rounded-xl mb-4">
+          <div className="flex items-center justify-between text-xs text-zinc-400 mb-1">
             <span className="font-mono text-amber-400 font-semibold">{task.caseRef}</span>
-            <span className="font-medium text-slate-300">Room {task.room}</span>
+            <span className="font-medium text-zinc-300">Suite {task.room}</span>
           </div>
-          <div className="text-sm font-semibold text-slate-100">
+          <div className="text-sm font-semibold text-zinc-100">
             {task.title}
           </div>
-          <div className="text-xs text-slate-400 mt-1">
-            Department: <strong className="text-slate-300">{task.department}</strong> · Priority: {task.priority}
+          <div className="text-xs text-zinc-400 mt-1">
+            Department: <strong className="text-zinc-300">{task.department}</strong> · Priority: {task.priority}
           </div>
         </div>
+
+        {authError && (
+          <div className="mb-4 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{authError}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Authorized Staff Name
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                Authorized Sign-off Staff
               </label>
-              <input
-                type="text"
-                required
-                value={staffName}
-                onChange={(e) => setStaffName(e.target.value)}
-                placeholder="Full Name"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500/50"
-              />
+              <select
+                value={selectedStaffId}
+                onChange={(e) => handleStaffChange(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-amber-300 font-semibold focus:outline-none focus:border-amber-500/50 cursor-pointer"
+              >
+                {AUTHORIZED_STAFF_MEMBERS.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.badgeId} — {s.role})
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Staff ID / Badge #
+              <label className="block text-xs font-semibold text-zinc-300 mb-1 flex items-center justify-between">
+                <span>Security PIN Authorization</span>
+                <span className="text-[10px] text-zinc-500 font-mono">Demo: {currentStaff.pin}</span>
               </label>
               <input
-                type="text"
+                type="password"
                 required
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-                placeholder="e.g. EMP-9201"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500/50"
+                maxLength={6}
+                value={enteredPin}
+                onChange={(e) => setEnteredPin(e.target.value)}
+                placeholder="Enter Staff PIN"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 font-mono tracking-widest focus:outline-none focus:border-amber-500/50"
               />
             </div>
           </div>
