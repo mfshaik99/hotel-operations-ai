@@ -167,7 +167,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="rounded-xl bg-zinc-950 border border-zinc-800 p-3">
                   <div className="text-[10px] text-zinc-500 mb-1">Agent Bridge Base URL</div>
-                  <div className="text-xs text-zinc-200 font-mono break-all">{switchConfig.roomWebhookUrl || 'Not configured'}</div>
+                  <div className="text-xs text-zinc-200 font-mono break-all">{switchConfig.agentBaseUrl || 'Not configured'}</div>
                 </div>
                 <div className="rounded-xl bg-zinc-950 border border-zinc-800 p-3">
                   <div className="text-[10px] text-zinc-500 mb-1">Switch Agent ID</div>
@@ -193,7 +193,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <button
                   type="button"
                   onClick={handleTestSwitch}
-                  disabled={isTesting || !switchConfig.roomWebhookUrl || !switchConfig.agentId || !switchConfig.roomId || !switchConfig.apiKey}
+                  disabled={isTesting || !switchConfig.agentBaseUrl || !switchConfig.agentId || !switchConfig.roomId || !switchConfig.apiKey}
                   className="px-4 py-2.5 text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-750 disabled:opacity-40 border border-zinc-700/80 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
                   {isTesting ? (
