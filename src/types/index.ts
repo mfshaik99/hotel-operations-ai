@@ -236,7 +236,7 @@ export interface SwitchConfig {
   agentBaseUrl: string; // Switch Agent Bridge base URL (not a webhook URL)
   agentId: string;
   roomId: string;
-  apiKey: string; // Redacted when sent over wire
+  apiKey: string; // Redacted in API responses
   channelTarget: string;
   lastTestedAt?: string;
   lastTestStatus?: 'SUCCESS' | 'FAILED' | 'NOT_TESTED';
