@@ -33,7 +33,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   showToast,
 }) => {
   const [webhookUrl, setWebhookUrl] = useState(switchConfig.roomWebhookUrl || '');
-  const [roomId, setRoomId] = useState(switchConfig.roomId || 'hotel-operations-room');
+  const [agentId, setAgentId] = useState(switchConfig.agentId || '');
+  const [roomId, setRoomId] = useState(switchConfig.roomId || '');
   const [channelTarget, setChannelTarget] = useState(switchConfig.channelTarget || '#hotel-ops-central');
   const [apiKey, setApiKey] = useState(switchConfig.apiKey || '');
   const [autoRelay, setAutoRelay] = useState(switchConfig.autoRelayTasks ?? true);
@@ -46,7 +47,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // Sync inputs if switchConfig changes externally
   useEffect(() => {
     setWebhookUrl(switchConfig.roomWebhookUrl || '');
-    setRoomId(switchConfig.roomId || 'hotel-operations-room');
+    setAgentId(switchConfig.agentId || '');
+    setRoomId(switchConfig.roomId || '');
     setChannelTarget(switchConfig.channelTarget || '#hotel-ops-central');
     setApiKey(switchConfig.apiKey || '');
     setAutoRelay(switchConfig.autoRelayTasks ?? true);
@@ -71,6 +73,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           roomWebhookUrl: webhookUrl.trim(),
+          agentId: agentId.trim(),
           roomId: roomId.trim(),
           channelTarget: channelTarget.trim(),
           apiKey: apiKey.trim(),
@@ -104,7 +107,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       if (data.success) {
         setTestResult({
           success: true,
-          message: 'Real HTTP test ping delivered to Switch room successfully (HTTP 200).',
+          message: 'Authenticated with the Switch Agent API and delivered a test message to the selected room.',
           timestamp: new Date().toLocaleTimeString(),
         });
         await onRefreshConfig();
@@ -121,7 +124,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     } catch (err: any) {
       setTestResult({
         success: false,
-        message: err?.message || 'Network exception connecting to Switch webhook',
+        message: err?.message || 'Network exception connecting to the Switch Agent Bridge',
         timestamp: new Date().toLocaleTimeString(),
       });
     } finally {
@@ -149,13 +152,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <Settings className="w-3.5 h-3.5" />
               INTEGRATION GATEWAY & PLATFORM SETTINGS
             </span>
-            <span className="text-xs text-zinc-500 font-mono">SandboxAQ Switch Protocol</span>
+            <span className="text-xs text-zinc-500 font-mono">HTTP + SSE Agent Protocol</span>
           </div>
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
             Settings & Genuine Integrations
           </h1>
           <p className="text-xs text-zinc-400 mt-1 max-w-2xl leading-relaxed">
-            Manage genuine API credentials, configure the SandboxAQ Switch multi-agent collaboration room webhook, and inspect the durable JSON persistence engine.
+            Configure a real SandboxAQ Switch agent connection using its bridge URL, agent ID, API key, and room ID.
           </p>
         </div>
       </div>
@@ -168,7 +171,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="flex items-center gap-2.5">
                 <Radio className="w-4 h-4 text-amber-400" />
                 <h2 className="text-sm font-bold text-zinc-100">
-                  Switch Room Protocol Configuration
+                  Switch Agent Protocol Configuration
                 </h2>
               </div>
 
@@ -194,7 +197,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   }`} />
                   <span>
                     {switchConfig.status === 'CONNECTED'
-                      ? 'CONNECTED (Switch Protocol Verified)'
+                      ? 'CONNECTED (Agent API + room stream)'
                       : switchConfig.status === 'UNVERIFIED_GENERIC_WEBHOOK'
                       ? 'UNVERIFIED GENERIC WEBHOOK'
                       : switchConfig.status === 'DISCONNECTED'
@@ -207,26 +210,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <div className="p-3.5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 text-xs text-zinc-400 leading-relaxed">
               <strong className="text-zinc-200">Engineering Protocol Notice: </strong>
-              SandboxAQ's Switch enables autonomous agents and human teams to communicate in shared rooms. When a valid webhook URL is provided, events are delivered via real HTTP POST envelopes. When unconfigured, the application runs on internal local mesh and never fakes connection.
+              This integration uses the official Switch Agent Protocol: authenticated HTTP requests send messages and a server-sent event (SSE) stream receives room messages. A generic webhook URL is not a Switch connection.
             </div>
 
             <form onSubmit={handleSaveConfig} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
-                  <span>Switch Room Webhook URL</span>
-                  <button
-                    type="button"
-                    onClick={() => setWebhookUrl('http://localhost:3000/api/switch/mock-room')}
-                    className="text-[10px] text-amber-400 hover:text-amber-300 font-mono underline cursor-pointer"
-                  >
-                    Use Reference SandboxAQ Switch Room
-                  </button>
+                  <span>Switch Agent Bridge Base URL</span>
+
                 </label>
                 <input
                   type="text"
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
-                  placeholder="https://switch.your-domain.com/v1/rooms/hotel-ops/events"
+                  placeholder="https://your-switch-bridge.example.com"
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-400 font-mono"
                 />
               </div>
@@ -234,26 +231,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-zinc-300 block mb-1.5">
-                    Room Identifier
+                    Agent ID
                   </label>
                   <input
                     type="text"
-                    value={roomId}
-                    onChange={(e) => setRoomId(e.target.value)}
-                    placeholder="hotel-operations-room"
+                    value={agentId}
+                    onChange={(e) => setAgentId(e.target.value)}
+                    placeholder="agent-id-from-switch-console"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-400 font-mono"
                   />
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold text-zinc-300 block mb-1.5">
-                    Target Channel
+                    Switch Room ID
                   </label>
                   <input
                     type="text"
-                    value={channelTarget}
-                    onChange={(e) => setChannelTarget(e.target.value)}
-                    placeholder="#hotel-ops-central"
+                    value={roomId}
+                    onChange={(e) => setRoomId(e.target.value)}
+                    placeholder="room-id-from-switch-console"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-400 font-mono"
                   />
                 </div>
@@ -261,14 +258,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
               <div>
                 <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
-                  <span>Bearer Authorization Token (Optional)</span>
-                  <span className="text-[10px] text-zinc-500 font-mono">Encrypted on server</span>
+                  <span>Switch Agent API Key</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">Keep private · never commit</span>
                 </label>
                 <input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Paste Switch Room bearer token or leave blank"
+                  placeholder="Paste the API key generated for this Switch agent"
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-400 font-mono"
                 />
               </div>
@@ -282,7 +279,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   className="rounded bg-zinc-950 border-zinc-800 text-amber-400 focus:ring-0 cursor-pointer"
                 />
                 <label htmlFor="autoRelay" className="text-xs text-zinc-300 cursor-pointer">
-                  Auto-relay newly decomposed tasks into Switch room channel
+                  Auto-relay newly decomposed tasks into the configured Switch room
                 </label>
               </div>
 
@@ -298,18 +295,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <button
                   type="button"
                   onClick={handleTestSwitch}
-                  disabled={isTesting || !webhookUrl.trim()}
+                  disabled={isTesting || !webhookUrl.trim() || !agentId.trim() || !roomId.trim() || !apiKey.trim()}
                   className="px-4 py-2.5 text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-750 disabled:opacity-40 border border-zinc-700/80 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
                   {isTesting ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Sending HTTP Probe...</span>
+                      <span>Testing agent connection...</span>
                     </>
                   ) : (
                     <>
                       <Send className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Send Switch Probe Ping</span>
+                      <span>Send Switch Test Message</span>
                     </>
                   )}
                 </button>
