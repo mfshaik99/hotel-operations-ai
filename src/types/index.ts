@@ -241,7 +241,7 @@ export interface SwitchConfig {
   lastTestedAt?: string;
   lastTestStatus?: 'SUCCESS' | 'FAILED' | 'NOT_TESTED';
   lastErrorMessage?: string;
-  protocolHandshakeVerified?: boolean;
+  agentApiVerified?: boolean;
   autoRelayTasks: boolean;
   totalDelivered: number;
 }
