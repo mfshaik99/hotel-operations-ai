@@ -645,10 +645,10 @@ function loadDatabase(): DatabaseSchema {
 let db: DatabaseSchema = loadDatabase();
 
 // Migrate older demo webhook settings without treating their mock handshake as a real connection.
-db.switchConfig.agentId = db.switchConfig.agentId || process.env.SWITCH_AGENT_ID || '';
-db.switchConfig.roomWebhookUrl = db.switchConfig.roomWebhookUrl || process.env.SWITCH_AGENT_BASE_URL || '';
-db.switchConfig.apiKey = db.switchConfig.apiKey || process.env.SWITCH_AGENT_API_KEY || '';
-db.switchConfig.roomId = db.switchConfig.roomId || process.env.SWITCH_ROOM_ID || '';
+db.switchConfig.agentId = process.env.SWITCH_AGENT_ID || '';
+db.switchConfig.roomWebhookUrl = process.env.SWITCH_AGENT_BASE_URL || '';
+db.switchConfig.apiKey = process.env.SWITCH_AGENT_API_KEY || '';
+db.switchConfig.roomId = process.env.SWITCH_ROOM_ID || '';
 if (db.switchConfig.roomWebhookUrl.includes('/api/switch/mock-room')) {
   db.switchConfig.roomWebhookUrl = process.env.SWITCH_AGENT_BASE_URL || '';
 }
@@ -2097,39 +2097,11 @@ async function startServer() {
     res.json({ success: true, config: redactSwitchConfig(db.switchConfig) });
   });
 
-  app.post('/api/switch/config', (req, res) => {
-    const { roomWebhookUrl, agentId, roomId, apiKey: newKey, channelTarget, autoRelayTasks } = req.body;
-
-    if (roomWebhookUrl !== undefined) {
-      const trimmed = roomWebhookUrl.trim();
-      if (trimmed && !trimmed.includes('/api/switch/mock-room')) {
-        const urlValidation = isValidWebhookUrl(trimmed);
-        if (!urlValidation.valid) {
-          return res.status(400).json({ error: urlValidation.error });
-        }
-      }
-      db.switchConfig.roomWebhookUrl = trimmed;
-    }
-    if (agentId !== undefined) db.switchConfig.agentId = agentId.trim();
-    if (roomId !== undefined) db.switchConfig.roomId = roomId.trim();
-    if (channelTarget !== undefined) db.switchConfig.channelTarget = channelTarget.trim();
-    if (autoRelayTasks !== undefined) db.switchConfig.autoRelayTasks = Boolean(autoRelayTasks);
-    if (newKey !== undefined && newKey !== '••••••••') db.switchConfig.apiKey = newKey.trim();
-
-    if (!db.switchConfig.roomWebhookUrl || !db.switchConfig.agentId || !db.switchConfig.apiKey || !db.switchConfig.roomId) {
-      db.switchConfig.status = 'NOT_CONFIGURED';
-      db.switchConfig.protocolHandshakeVerified = false;
-    } else {
-      db.switchConfig.status = 'DISCONNECTED';
-      db.switchConfig.protocolHandshakeVerified = false;
-    }
-
-    if (!saveDatabase(db)) {
-      return res.status(500).json({ error: 'Persistence failure: unable to commit Switch configuration.' });
-    }
-
-    startSwitchInboundStream();
-    res.json({ success: true, config: redactSwitchConfig(db.switchConfig) });
+  app.post('/api/switch/config', (_req, res) => {
+    res.status(405).json({
+      success: false,
+      error: 'Switch credentials are read only at runtime. Configure SWITCH_AGENT_BASE_URL, SWITCH_AGENT_ID, SWITCH_AGENT_API_KEY, and SWITCH_ROOM_ID as deployment secrets or environment variables.',
+    });
   });
 
   // 15. Verify credentials and deliver a real message through the Switch Agent API
