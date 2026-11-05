@@ -597,7 +597,7 @@ function getInitialDatabase(): DatabaseSchema {
     autoRelayTasks: true,
     totalDelivered: 0,
     lastTestStatus: 'NOT_TESTED',
-    protocolHandshakeVerified: false,
+    agentApiVerified: false,
   };
 
   return {
@@ -656,7 +656,7 @@ db.switchConfig.status =
   db.switchConfig.agentBaseUrl && db.switchConfig.agentId && db.switchConfig.apiKey && db.switchConfig.roomId
     ? 'DISCONNECTED'
     : 'NOT_CONFIGURED';
-db.switchConfig.protocolHandshakeVerified = false;
+db.switchConfig.agentApiVerified = false;
 
 // ---------------------------------------------------------------------------
 // Real-Time Messaging Architecture: WebSocket & SSE Broadcast Hub
@@ -740,7 +740,7 @@ async function forwardToSwitchRoom(
 ): Promise<{ success: boolean; error?: string; status: SwitchConfig['status'] }> {
   if (!config.agentBaseUrl || !config.agentId || !config.apiKey || !config.roomId) {
     config.status = 'NOT_CONFIGURED';
-    config.protocolHandshakeVerified = false;
+    config.agentApiVerified = false;
     return {
       success: false,
       error: 'Configure the Switch Agent Bridge URL, agent ID, API key, and room ID first.',
@@ -751,7 +751,7 @@ async function forwardToSwitchRoom(
   const urlCheck = isValidSwitchBridgeUrl(config.agentBaseUrl);
   if (!urlCheck.valid) {
     config.status = 'CONNECTION_FAILED';
-    config.protocolHandshakeVerified = false;
+    config.agentApiVerified = false;
     config.lastTestStatus = 'FAILED';
     config.lastErrorMessage = urlCheck.error;
     saveDatabase(db);
@@ -778,7 +778,7 @@ async function forwardToSwitchRoom(
     await client.sendMessage(message);
     config.totalDelivered += 1;
     config.status = 'CONNECTED';
-    config.protocolHandshakeVerified = true;
+    config.agentApiVerified = true;
     config.lastTestedAt = new Date().toISOString();
     config.lastTestStatus = 'SUCCESS';
     config.lastErrorMessage = undefined;
@@ -786,7 +786,7 @@ async function forwardToSwitchRoom(
     return { success: true, status: 'CONNECTED' };
   } catch (err: any) {
     config.status = 'DISCONNECTED';
-    config.protocolHandshakeVerified = false;
+    config.agentApiVerified = false;
     config.lastTestedAt = new Date().toISOString();
     config.lastTestStatus = 'FAILED';
     config.lastErrorMessage = err?.message || 'Switch Agent API request failed.';
@@ -850,7 +850,7 @@ function startSwitchInboundStream(): void {
     },
     (status, detail) => {
       db.switchConfig.status = status;
-      db.switchConfig.protocolHandshakeVerified = status === 'CONNECTED';
+      db.switchConfig.agentApiVerified = status === 'CONNECTED';
       if (detail) db.switchConfig.lastErrorMessage = detail;
       if (status === 'CONNECTED') db.switchConfig.lastErrorMessage = undefined;
       saveDatabase(db);
@@ -2123,7 +2123,7 @@ async function startServer() {
     res.json({
       success: testResult.success,
       status: db.switchConfig.status,
-      protocolHandshakeVerified: db.switchConfig.protocolHandshakeVerified,
+      agentApiVerified: db.switchConfig.agentApiVerified,
       lastTestedAt: db.switchConfig.lastTestedAt,
       message: testResult.success
         ? 'Authenticated with the Switch Agent API and delivered a test message to the configured room.'
