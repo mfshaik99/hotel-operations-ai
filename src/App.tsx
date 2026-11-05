@@ -44,6 +44,7 @@ import {
 const DEFAULT_SWITCH_CONFIG: SwitchConfig = {
   status: 'NOT_CONFIGURED',
   roomWebhookUrl: '',
+  agentId: '',
   roomId: 'hotel-operations-room',
   apiKey: '',
   channelTarget: '#hotel-ops-central',
