@@ -9,9 +9,9 @@
       "department": "Maintenance",
       "assignedAgent": "Maintenance Agent",
       "priority": "High",
-      "status": "In Progress",
-      "lifecycleStage": "IN_PROGRESS",
-      "deliveryStatus": "IN_PROGRESS",
+      "status": "Resolved",
+      "lifecycleStage": "RESOLVED",
+      "deliveryStatus": "COMPLETED",
       "createdAt": 1793808880907,
       "slaDeadline": 1793811580907,
       "estimatedMinutes": 45,
@@ -45,8 +45,19 @@
           "actorRole": "Engineering",
           "action": "ACCEPTED",
           "note": "Duty HVAC technician dispatched to 4th floor service riser."
+        },
+        {
+          "id": "aud-1793813146923-verify",
+          "timestamp": 1793813146923,
+          "actor": "Carlos Mendez (Badge: ENG-402)",
+          "actorRole": "Chief Plant Engineer",
+          "action": "HUMAN_VERIFIED",
+          "note": "Physical in-suite verification confirmed. Checklist verified: YES. Notes: \"Physical repair completed and verified on site with thermal manifold.\""
         }
-      ]
+      ],
+      "resolvedBy": "Carlos Mendez (Badge: ENG-402)",
+      "resolvedAt": 1793813146923,
+      "resolutionNotes": "Physical repair completed and verified on site with thermal manifold."
     },
     {
       "id": "task-102",
@@ -96,9 +107,9 @@
       "department": "Maintenance",
       "assignedAgent": "Maintenance Agent",
       "priority": "Urgent",
-      "status": "Escalated",
-      "lifecycleStage": "ESCALATED",
-      "deliveryStatus": "IN_PROGRESS",
+      "status": "Resolved",
+      "lifecycleStage": "RESOLVED",
+      "deliveryStatus": "COMPLETED",
       "createdAt": 1793807800907,
       "slaDeadline": 1793810500907,
       "estimatedMinutes": 45,
@@ -125,8 +136,19 @@
           "actorRole": "General Manager",
           "action": "ESCALATED",
           "note": "Escalated to Executive Duty Manager due to repeated guest lockout."
+        },
+        {
+          "id": "aud-1793813181299-verify",
+          "timestamp": 1793813181299,
+          "actor": "Carlos Mendez (Badge: ENG-402)",
+          "actorRole": "Chief Plant Engineer",
+          "action": "HUMAN_VERIFIED",
+          "note": "Physical in-suite verification confirmed. Checklist verified: YES. Notes: \"Physical repair completed and verified on site with thermal manifold.\""
         }
-      ]
+      ],
+      "resolvedBy": "Carlos Mendez (Badge: ENG-402)",
+      "resolvedAt": 1793813181299,
+      "resolutionNotes": "Physical repair completed and verified on site with thermal manifold."
     }
   ],
   "requests": [
@@ -168,6 +190,42 @@
       "content": "Understood Elena. Monitoring 7th floor suite turnover. Housekeeping priority sequence adjusted for Suites 701, 704, and 708.",
       "badge": "DISPATCHED",
       "timestamp": "08:16",
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793813146923-verified",
+      "sender": "Central Operations AI",
+      "avatarRole": "Orchestrator",
+      "senderType": "AI_AGENT",
+      "department": "Management",
+      "content": "HUMAN SIGN-OFF VERIFIED: Case [CAS-8091] Suite 412 (\"Inspect chilled-water HVAC unit — room ambient temperature 26.5°C\") officially CLOSED by Carlos Mendez (Badge: ENG-402). Notes: \"Physical repair completed and verified on site with thermal manifold.\"",
+      "badge": "VERIFIED",
+      "timestamp": "05:25 PM",
+      "room": "412",
+      "taskId": "task-101",
+      "referencedTaskIds": [
+        "task-101"
+      ],
+      "channel": "#operations-general",
+      "sourceType": "LIVE_AGENT",
+      "deliveryState": "DELIVERED"
+    },
+    {
+      "id": "msg-1793813181299-verified",
+      "sender": "Central Operations AI",
+      "avatarRole": "Orchestrator",
+      "senderType": "AI_AGENT",
+      "department": "Management",
+      "content": "HUMAN SIGN-OFF VERIFIED: Case [CAS-8093] Suite 215 (\"Digital Key demagnetization & RFID mortise lock diagnostic\") officially CLOSED by Carlos Mendez (Badge: ENG-402). Notes: \"Physical repair completed and verified on site with thermal manifold.\"",
+      "badge": "VERIFIED",
+      "timestamp": "05:26 PM",
+      "room": "215",
+      "taskId": "task-103",
+      "referencedTaskIds": [
+        "task-103"
+      ],
       "channel": "#operations-general",
       "sourceType": "LIVE_AGENT",
       "deliveryState": "DELIVERED"
@@ -285,14 +343,15 @@
     }
   ],
   "switchConfig": {
-    "status": "NOT_CONFIGURED",
-    "roomWebhookUrl": "",
+    "status": "CONNECTED",
+    "roomWebhookUrl": "http://localhost:3000/api/switch/mock-room",
     "roomId": "hotel-operations-room",
     "apiKey": "",
     "channelTarget": "#hotel-ops-central",
     "autoRelayTasks": true,
-    "totalDelivered": 0,
-    "lastTestStatus": "NOT_TESTED",
-    "protocolHandshakeVerified": false
+    "totalDelivered": 1,
+    "lastTestStatus": "SUCCESS",
+    "protocolHandshakeVerified": true,
+    "lastTestedAt": "2026-11-04T17:26:24.151Z"
   }
 }

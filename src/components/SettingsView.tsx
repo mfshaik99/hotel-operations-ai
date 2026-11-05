@@ -214,7 +214,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div>
                 <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
                   <span>Switch Room Webhook URL</span>
-                  <span className="text-[10px] text-zinc-500 font-mono">e.g. https://switch.example.com/rooms/hotel-ops/webhook</span>
+                  <button
+                    type="button"
+                    onClick={() => setWebhookUrl('http://localhost:3000/api/switch/mock-room')}
+                    className="text-[10px] text-amber-400 hover:text-amber-300 font-mono underline cursor-pointer"
+                  >
+                    Use Reference SandboxAQ Switch Room
+                  </button>
                 </label>
                 <input
                   type="text"

@@ -41,15 +41,14 @@ interface StaffMember {
   name: string;
   role: string;
   badgeId: string;
-  pin: string;
   department: Department;
 }
 
 const REGISTERED_STAFF: StaffMember[] = [
-  { id: 'staff-elena', name: 'Elena Rostova', role: 'Front Desk Lead', badgeId: 'FD-1042', pin: '1042', department: 'Reception' },
-  { id: 'staff-marcus', name: 'Marcus Vance', role: 'Duty Manager', badgeId: 'DM-9001', pin: '9001', department: 'Management' },
-  { id: 'staff-carlos', name: 'Carlos Mendez', role: 'Lead HVAC Engineer', badgeId: 'ENG-4021', pin: '4021', department: 'Maintenance' },
-  { id: 'staff-maria', name: 'Maria Santos', role: 'Housekeeping Supervisor', badgeId: 'HK-3105', pin: '3105', department: 'Housekeeping' },
+  { id: 'staff-elena', name: 'Elena Rostova', role: 'Front Desk Lead', badgeId: 'REC-104', department: 'Reception' },
+  { id: 'staff-marcus', name: 'Marcus Vance', role: 'Executive Duty Manager', badgeId: 'MGT-900', department: 'Management' },
+  { id: 'staff-carlos', name: 'Carlos Mendez', role: 'Chief Plant Engineer', badgeId: 'ENG-402', department: 'Maintenance' },
+  { id: 'staff-maria', name: 'Maria Santos', role: 'Head of Housekeeping', badgeId: 'HSK-310', department: 'Housekeeping' },
 ];
 
 export const TeamChatRoom: React.FC<TeamChatRoomProps> = ({
@@ -285,7 +284,7 @@ export const TeamChatRoom: React.FC<TeamChatRoomProps> = ({
   const handleSelectTeammate = (staff: StaffMember) => {
     setSelectedSenderId(staff.id);
     if (staff.id !== activeStaff.id || !staffToken) {
-      setPinInput(staff.pin); // Pre-fill with demo PIN for effortless reviewer testing
+      setPinInput('');
       setPinError(null);
       setIsPinModalOpen(true);
     }
@@ -801,15 +800,6 @@ export const TeamChatRoom: React.FC<TeamChatRoomProps> = ({
                         </option>
                       ))}
                     </optgroup>
-                    <optgroup label="Autonomous AI Agents">
-                      {participants
-                        .filter((p) => p.type === 'AI_AGENT')
-                        .map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} ({p.role})
-                          </option>
-                        ))}
-                    </optgroup>
                   </select>
                 </div>
 
@@ -875,7 +865,7 @@ export const TeamChatRoom: React.FC<TeamChatRoomProps> = ({
             <div className="space-y-3">
               <div>
                 <label className="text-xs text-zinc-400 block mb-1">
-                  Security PIN (Demo default: {matchedStaff?.pin || activeStaff.pin})
+                  Security PIN Authorization
                 </label>
                 <input
                   type="password"

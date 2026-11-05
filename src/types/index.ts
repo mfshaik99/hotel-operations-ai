@@ -79,6 +79,7 @@ export type MessageSourceType =
   | 'LIVE_STAFF'
   | 'LIVE_AGENT'
   | 'SWITCH_PROTOCOL'
+  | 'SWITCH_ROOM'
   | 'DEMO_WORKFLOW'
   | 'DEMO_SEED';
 

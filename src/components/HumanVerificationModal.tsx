@@ -10,10 +10,10 @@ interface HumanVerificationModalProps {
 }
 
 const AUTHORIZED_STAFF_MEMBERS = [
-  { id: 'staff-elena', name: 'Elena Rostova', role: 'Front Desk Lead', badgeId: 'FD-1042', pin: '1042', department: 'Reception' },
-  { id: 'staff-marcus', name: 'Marcus Vance', role: 'Duty Manager', badgeId: 'DM-9001', pin: '9001', department: 'Management' },
-  { id: 'staff-carlos', name: 'Carlos Mendez', role: 'Lead HVAC Engineer', badgeId: 'ENG-4021', pin: '4021', department: 'Maintenance' },
-  { id: 'staff-maria', name: 'Maria Santos', role: 'Housekeeping Supervisor', badgeId: 'HK-3105', pin: '3105', department: 'Housekeeping' },
+  { id: 'staff-carlos', name: 'Carlos Mendez', role: 'Chief Plant Engineer', badgeId: 'ENG-402', department: 'Maintenance' },
+  { id: 'staff-maria', name: 'Maria Santos', role: 'Head of Housekeeping', badgeId: 'HSK-310', department: 'Housekeeping' },
+  { id: 'staff-elena', name: 'Elena Rostova', role: 'Front Desk Lead', badgeId: 'REC-104', department: 'Reception' },
+  { id: 'staff-marcus', name: 'Marcus Vance', role: 'Executive Duty Manager', badgeId: 'MGT-900', department: 'Management' },
 ];
 
 export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
@@ -22,8 +22,16 @@ export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
   onClose,
   onConfirmResolution,
 }) => {
-  const [selectedStaffId, setSelectedStaffId] = useState('staff-elena');
-  const [enteredPin, setEnteredPin] = useState('1042');
+  // Department-specific staff authorization: Only matching department staff or Executive Duty Manager
+  const eligibleStaff = React.useMemo(() => {
+    if (!task) return AUTHORIZED_STAFF_MEMBERS;
+    return AUTHORIZED_STAFF_MEMBERS.filter(
+      (s) => s.department === 'Management' || s.department === task.department
+    );
+  }, [task]);
+
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
+  const [enteredPin, setEnteredPin] = useState('');
   const [notes, setNotes] = useState('Physical service inspection complete. Tested and verified directly in suite.');
   const [authError, setAuthError] = useState<string | null>(null);
   const [checklist, setChecklist] = useState({
@@ -32,37 +40,42 @@ export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
     luxuryStandardsMet: true,
   });
 
+  // Keep selectedStaffId aligned with eligible staff
+  React.useEffect(() => {
+    if (eligibleStaff.length > 0) {
+      setSelectedStaffId(eligibleStaff[0].id);
+      setEnteredPin('');
+      setAuthError(null);
+    }
+  }, [eligibleStaff]);
+
   if (!isOpen || !task) return null;
 
-  const currentStaff = AUTHORIZED_STAFF_MEMBERS.find((s) => s.id === selectedStaffId) || AUTHORIZED_STAFF_MEMBERS[0];
+  const currentStaff = eligibleStaff.find((s) => s.id === selectedStaffId) || eligibleStaff[0];
 
   const handleStaffChange = (staffId: string) => {
     setSelectedStaffId(staffId);
-    const staff = AUTHORIZED_STAFF_MEMBERS.find((s) => s.id === staffId);
-    if (staff) {
-      setEnteredPin(staff.pin);
-      setAuthError(null);
-    }
+    setEnteredPin('');
+    setAuthError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
 
-    // Validate PIN
-    if (enteredPin !== currentStaff.pin) {
-      setAuthError(`Invalid PIN for ${currentStaff.name}. Default demo PIN is ${currentStaff.pin}.`);
+    if (!enteredPin.trim()) {
+      setAuthError('Security PIN required to authorize sign-off.');
       return;
     }
 
     try {
-      // Authenticate via official backend auth endpoint
+      // Authenticate against server's salted SHA-256 PIN authentication endpoint
       const loginRes = await fetch('/api/auth/staff-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           staffId: currentStaff.id,
-          pin: enteredPin,
+          pin: enteredPin.trim(),
         }),
       });
 
@@ -72,7 +85,7 @@ export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
         return;
       }
 
-      const fullStaffSignature = `${currentStaff.name} [${currentStaff.badgeId}]`;
+      const fullStaffSignature = `${currentStaff.name} [Badge: ${currentStaff.badgeId}]`;
       onConfirmResolution(task.id, fullStaffSignature, notes.trim(), loginData.token, currentStaff.badgeId);
       onClose();
     } catch (err: any) {
@@ -129,15 +142,18 @@ export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                Authorized Sign-off Staff
+              <label className="block text-xs font-semibold text-zinc-300 mb-1 flex items-center justify-between">
+                <span>Authorized Sign-off Staff</span>
+                <span className="text-[10px] text-amber-400/90 font-mono">
+                  {task.department} or Duty Manager
+                </span>
               </label>
               <select
                 value={selectedStaffId}
                 onChange={(e) => handleStaffChange(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-amber-300 font-semibold focus:outline-none focus:border-amber-500/50 cursor-pointer"
               >
-                {AUTHORIZED_STAFF_MEMBERS.map((s) => (
+                {eligibleStaff.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name} ({s.badgeId} — {s.role})
                   </option>
@@ -147,7 +163,7 @@ export const HumanVerificationModal: React.FC<HumanVerificationModalProps> = ({
             <div>
               <label className="block text-xs font-semibold text-zinc-300 mb-1 flex items-center justify-between">
                 <span>Security PIN Authorization</span>
-                <span className="text-[10px] text-zinc-500 font-mono">Demo: {currentStaff.pin}</span>
+                <span className="text-[10px] text-zinc-500 font-mono">Staff Security PIN</span>
               </label>
               <input
                 type="password"
