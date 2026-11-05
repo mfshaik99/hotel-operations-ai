@@ -2092,7 +2092,7 @@ async function startServer() {
     res.json({ success: true, agents: updatedAgents });
   });
 
-  // 14. Switch Configuration & Real Connection Verification (Secret Redacted)
+  // 14. Read-only Switch Agent configuration (secret redacted)
   app.get('/api/switch/config', (_req, res) => {
     res.json({ success: true, config: redactSwitchConfig(db.switchConfig) });
   });
