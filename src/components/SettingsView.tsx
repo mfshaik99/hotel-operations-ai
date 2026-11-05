@@ -32,27 +32,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onResetDatabase,
   showToast,
 }) => {
-  const [webhookUrl, setWebhookUrl] = useState(switchConfig.roomWebhookUrl || '');
-  const [agentId, setAgentId] = useState(switchConfig.agentId || '');
-  const [roomId, setRoomId] = useState(switchConfig.roomId || '');
-  const [channelTarget, setChannelTarget] = useState(switchConfig.channelTarget || '#hotel-ops-central');
-  const [apiKey, setApiKey] = useState(switchConfig.apiKey || '');
-  const [autoRelay, setAutoRelay] = useState(switchConfig.autoRelayTasks ?? true);
-
-  const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; timestamp?: string } | null>(null);
   const [dbStats, setDbStats] = useState<any>(null);
-
-  // Sync inputs if switchConfig changes externally
-  useEffect(() => {
-    setWebhookUrl(switchConfig.roomWebhookUrl || '');
-    setAgentId(switchConfig.agentId || '');
-    setRoomId(switchConfig.roomId || '');
-    setChannelTarget(switchConfig.channelTarget || '#hotel-ops-central');
-    setApiKey(switchConfig.apiKey || '');
-    setAutoRelay(switchConfig.autoRelayTasks ?? true);
-  }, [switchConfig]);
 
   // Fetch DB & health stats
   useEffect(() => {
@@ -61,38 +43,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       .then((data) => setDbStats(data))
       .catch(() => {});
   }, []);
-
-  const handleSaveConfig = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    setTestResult(null);
-
-    try {
-      const res = await fetch('/api/switch/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomWebhookUrl: webhookUrl.trim(),
-          agentId: agentId.trim(),
-          roomId: roomId.trim(),
-          channelTarget: channelTarget.trim(),
-          apiKey: apiKey.trim(),
-          autoRelayTasks: autoRelay,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        await onRefreshConfig();
-        showToast('Switch configuration saved to server');
-      } else {
-        showToast(data.error || 'Failed to save configuration');
-      }
-    } catch (err: any) {
-      showToast(err?.message || 'Error saving configuration');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const handleTestSwitch = async () => {
     setIsTesting(true);
@@ -213,89 +163,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               This integration uses the official Switch Agent Protocol: authenticated HTTP requests send messages and a server-sent event (SSE) stream receives room messages. A generic webhook URL is not a Switch connection.
             </div>
 
-            <form onSubmit={handleSaveConfig} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
-                  <span>Switch Agent Bridge Base URL</span>
-
-                </label>
-                <input
-                  type="text"
-                  value={webhookUrl}
-                  onChange={(e) => setWebhookUrl(e.target.value)}
-                  placeholder="https://your-switch-bridge.example.com"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-400 font-mono"
-                />
-              </div>
-
+            <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-zinc-300 block mb-1.5">
-                    Agent ID
-                  </label>
-                  <input
-                    type="text"
-                    value={agentId}
-                    onChange={(e) => setAgentId(e.target.value)}
-                    placeholder="agent-id-from-switch-console"
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-400 font-mono"
-                  />
+                <div className="rounded-xl bg-zinc-950 border border-zinc-800 p-3">
+                  <div className="text-[10px] text-zinc-500 mb-1">Agent Bridge Base URL</div>
+                  <div className="text-xs text-zinc-200 font-mono break-all">{switchConfig.roomWebhookUrl || 'Not configured'}</div>
                 </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-zinc-300 block mb-1.5">
-                    Switch Room ID
-                  </label>
-                  <input
-                    type="text"
-                    value={roomId}
-                    onChange={(e) => setRoomId(e.target.value)}
-                    placeholder="room-id-from-switch-console"
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-400 font-mono"
-                  />
+                <div className="rounded-xl bg-zinc-950 border border-zinc-800 p-3">
+                  <div className="text-[10px] text-zinc-500 mb-1">Switch Agent ID</div>
+                  <div className="text-xs text-zinc-200 font-mono break-all">{switchConfig.agentId || 'Not configured'}</div>
+                </div>
+                <div className="rounded-xl bg-zinc-950 border border-zinc-800 p-3">
+                  <div className="text-[10px] text-zinc-500 mb-1">Room ID</div>
+                  <div className="text-xs text-zinc-200 font-mono break-all">{switchConfig.roomId || 'Not configured'}</div>
+                </div>
+                <div className="rounded-xl bg-zinc-950 border border-zinc-800 p-3">
+                  <div className="text-[10px] text-zinc-500 mb-1">Agent API Key</div>
+                  <div className="text-xs text-zinc-200 font-mono">{switchConfig.apiKey ? 'Configured · hidden' : 'Not configured'}</div>
                 </div>
               </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-300 block mb-1.5 flex items-center justify-between">
-                  <span>Switch Agent API Key</span>
-                  <span className="text-[10px] text-zinc-500 font-mono">Keep private · never commit</span>
-                </label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Paste the API key generated for this Switch agent"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-400 font-mono"
-                />
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                Connection settings are read from server environment variables. Add the four SWITCH_* values from .env.example to your deployment secrets; credentials are not editable through this public settings endpoint.
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-400">Automatic task relay:</span>
+                <span className="text-xs font-mono text-zinc-200">{switchConfig.autoRelayTasks ? 'Enabled' : 'Disabled'}</span>
               </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="autoRelay"
-                  checked={autoRelay}
-                  onChange={(e) => setAutoRelay(e.target.checked)}
-                  className="rounded bg-zinc-950 border-zinc-800 text-amber-400 focus:ring-0 cursor-pointer"
-                />
-                <label htmlFor="autoRelay" className="text-xs text-zinc-300 cursor-pointer">
-                  Auto-relay newly decomposed tasks into the configured Switch room
-                </label>
-              </div>
-
-              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-4 py-2.5 text-xs font-semibold text-zinc-950 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 rounded-xl shadow-xs transition-colors cursor-pointer"
-                >
-                  {isSaving ? 'Saving...' : 'Save Switch Settings'}
-                </button>
-
+              <div className="pt-2">
                 <button
                   type="button"
                   onClick={handleTestSwitch}
-                  disabled={isTesting || !webhookUrl.trim() || !agentId.trim() || !roomId.trim() || !apiKey.trim()}
+                  disabled={isTesting || !switchConfig.roomWebhookUrl || !switchConfig.agentId || !switchConfig.roomId || !switchConfig.apiKey}
                   className="px-4 py-2.5 text-xs font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-750 disabled:opacity-40 border border-zinc-700/80 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
                   {isTesting ? (
@@ -311,7 +209,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   )}
                 </button>
               </div>
-            </form>
+            </div>
 
             {/* Test Connection Result Box */}
             {testResult && (
