@@ -57,11 +57,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       if (data.success) {
         setTestResult({
           success: true,
-          message: 'Authenticated with the Switch Agent API and delivered a test message to the selected room.',
+          message: 'Test message delivered through the Switch Agent API; checking the live room stream.',
           timestamp: new Date().toLocaleTimeString(),
         });
         await onRefreshConfig();
-        showToast('Switch connection verified!');
+        showToast('Switch test message delivered');
       } else {
         setTestResult({
           success: false,
