@@ -18,7 +18,7 @@ Hotel operations suffer from fragmentation: guest inquiries received via telepho
 5. **Room 204 End-to-End Operational Workflow:** Demonstrates a real guest request (AC not working + extra towels) decomposing into tasks, dispatching to technicians, updating progress in chat, and awaiting human sign-off.
 6. **10-Stage Reliable Task Lifecycle:** Tracks cases from `REQUEST_RECEIVED` through `COMPLETION_PENDING_CONFIRMATION` to authorized `RESOLVED`.
 7. **Human-in-the-Loop Completion Gate (Principle #8):** Physical tasks cannot be marked `Resolved` by AI; an authorized employee must confirm execution with their badge/name and completion notes.
-8. **Genuine Switch Integration:** Multi-agent collaboration room connecting AI teammates and human staff through SandboxAQ's Switch protocol, with real HTTP webhook dispatch and verifiable delivery states.
+8. **Genuine Switch Integration:** Multi-agent collaboration room connecting AI teammates and human staff through SandboxAQ's official Switch Agent Protocol (authenticated HTTP message delivery and an inbound SSE event stream).
 9. **Durable File-Backed Persistence:** Atomic JSON database (`/data/hotel_operations_db.json`) preserving task states, immutable audit trails, and team chat logs across browser refreshes.
 
 ---
@@ -113,7 +113,7 @@ Tasks strictly progress through an auditable lifecycle:
 2. `ANALYZING` — Central Operations AI analyzes intent and evaluates missing information.
 3. `TASK_CREATED` — Individual operational task recorded with case reference.
 4. `ASSIGNED` — Allocated to designated departmental agent.
-5. `DELIVERY_PENDING` — Webhook or internal mesh dispatch queued.
+5. `DELIVERY_PENDING` — Switch Agent API or local dispatch queued.
 6. `DELIVERED` — Delivery confirmed at the department queue.
 7. `ACCEPTED` — Assigned agent acknowledges and dispatches physical staff.
 8. `IN_PROGRESS` — Staff en route or active on-site with SLA timer running.
@@ -125,7 +125,7 @@ Tasks strictly progress through an auditable lifecycle:
 ## 5. Security & Data Integrity
 
 - **Secret Redaction:** Gemini API keys and Switch bearer tokens are redacted (`••••••••`) from all client-facing API responses.
-- **SSRF Protection:** Switch room webhook URLs are validated against private IP blocks (127.0.0.1, 10.x, 192.168.x, 172.16-31.x) and cloud metadata services (169.254.169.254).
+- **SSRF Protection:** Switch Agent Bridge URLs are validated against private IP blocks (127.0.0.1, 10.x, 192.168.x, 172.16-31.x) and cloud metadata services (169.254.169.254).
 - **Atomic File Writes:** Database writes write to a temporary file (`.tmp`) before atomic rename, preventing file corruption under concurrent operations.
 - **Mandatory Staff Sign-Off:** Task verification requires explicit `staffName` and `badgeId` parameters.
 
@@ -144,41 +144,46 @@ The UI is designed according to Linear and Stripe-tier SaaS standards:
 | **5. Switch Operations Room** | `switch` | Multi-agent collaboration workspace displaying real-time agent dialogues, delivery status badges (`DELIVERED`, `LOCAL_MESH`), source filtering (`LIVE_AGENT` vs `DEMO_SEED`), and live event dispatching. |
 | **6. AI Agent Management** | `agents` | Detailed inspection cards for each of the 5 agents, showcasing active case loads, response velocity, autonomy level (`Full Delegated Authority`, `Supervisor Review Required`, `Executive Clearance Only`), and interactive domain protocol triggers. |
 | **7. Management Intelligence** | `intelligence` | Real-time analytics computed strictly from server state, separating verified human-completed metrics from active estimates. |
-| **8. Settings & Integrations** | `settings` | Live Gemini engine status, Switch room webhook configuration with real HTTP probe ping button, honest status indicator (`CONNECTED`, `DISCONNECTED`, `NOT_CONFIGURED`), and database reset controls. |
+| **8. Settings & Integrations** | `settings` | Live Gemini engine status, Switch Agent Bridge URL, agent ID, API key and room ID configuration, real Agent API test message, honest status indicator (`CONNECTED`, `DISCONNECTED`, `NOT_CONFIGURED`), and database reset controls. |
 
 ---
 
 ## 7. Switch Integration Protocol
 
-SandboxAQ's Switch enables autonomous agents to collaborate within shared team spaces ("Switch Rooms"). Hotel Operations AI implements both a local high-performance agent mesh and a real HTTP webhook dispatcher.
+SandboxAQ's Switch enables autonomous agents to collaborate within shared team spaces ("Switch Rooms"). Hotel Operations AI connects as a registered Switch agent using the official Agent Bridge API.
 
-### Webhook Dispatch Envelope
-When an event occurs (e.g. `TASK_CREATED`, `SLA_ACTIVE`, `ESCALATED`, or `HUMAN_VERIFIED`), the server dispatches a structured JSON payload to the configured Switch room webhook:
+### Official Switch Agent Protocol
 
-```json
-{
-  "protocol": "switch.v1",
-  "roomId": "hotel-operations-room",
-  "channel": "#hotel-ops-central",
-  "sender": {
-    "name": "Maintenance Agent",
-    "role": "Engineering"
-  },
-  "eventType": "TASK_CREATED",
-  "content": "New Operational Task created: [CAS-8091] Suite 412 - Inspect chilled-water HVAC unit",
-  "roomNumber": "412",
-  "taskId": "task-101",
-  "timestamp": "2026-11-04T16:00:00.000Z"
-}
-```
+This application is a custom Switch agent client. It does **not** pretend that an arbitrary webhook is a Switch room, and it does not use a self-hosted mock endpoint to verify itself.
 
-### Honest Connection Status States
-The platform enforces transparency and **never falsely claims an external Switch connection exists**:
-- `NOT_CONFIGURED`: Default state when no external room webhook URL is provided. Operates on local agent mesh.
-- `DISCONNECTED`: A webhook URL is configured but network connectivity failed or returned a non-2xx status code.
-- `CONNECTION_FAILED`: Network timeout, DNS failure, or connection refused during probe.
-- `UNVERIFIED_GENERIC_WEBHOOK`: The target URL returned HTTP 200, but did not supply the required SandboxAQ Switch protocol headers (`X-Switch-Room-Status` or Switch v1 JSON envelope). The platform explicitly refuses to certify this as connected.
-- `CONNECTED`: Verified only when an authentic SandboxAQ Switch protocol handshake is confirmed via headers or protocol envelope.
+The integration follows the published Switch Agent Protocol:
+
+- **Outbound messages:** `POST /agents/{agent_id}/message` with the agent API key in `Authorization: Bearer` and JSON body `{ "room_id": "...", "content": "..." }`.
+- **Inbound room activity:** an authenticated Server-Sent Events connection to `GET /agents/{agent_id}/events`, scoped to the configured room.
+- **Connection liveness:** `POST /agents/{agent_id}/connection/beat` every two seconds, using the same connection ID and latest event cursor.
+- **Credential check:** `GET /agents/{agent_id}/ops` verifies that the configured agent API key is accepted by the bridge.
+
+The Bridge Base URL must point to the **Agent Bridge**, not the operator Gateway URL. The agent must already exist in Switch and be a member of the selected room. Create/configure it in Switch Console, then set its agent ID and API key as server environment variables.
+
+### Required configuration
+
+| Variable | Purpose |
+|---|---|
+| `SWITCH_AGENT_BASE_URL` | Base URL of the Switch Agent Bridge |
+| `SWITCH_AGENT_ID` | Registered Switch agent ID |
+| `SWITCH_AGENT_API_KEY` | API key generated for that agent |
+| `SWITCH_ROOM_ID` | Existing room ID the agent belongs to |
+
+Never commit real credentials. Switch connection values are read only from environment variables; the API key is not written to the application JSON database or exposed by the settings API. Use deployment secrets for hosted deployments.
+
+### Connection states
+
+- `NOT_CONFIGURED`: one or more required values are missing.
+- `DISCONNECTED`: the configured bridge/agent/room stream is not currently live or an API call failed.
+- `CONNECTED`: authenticated HTTP message delivery succeeded and the inbound room stream is active.
+- `CONNECTION_FAILED`: the bridge URL could not be reached or rejected the request.
+
+The old `/api/switch/mock-room`, `/api/switch/handshake`, and custom webhook event routes are retired with HTTP 410. They cannot certify a real Switch connection.
 
 ---
 
@@ -193,7 +198,7 @@ The platform enforces strict security and non-bypassable business rules:
 | **Principle #8 Enforcement** | Anti-Bypass Guard | `PATCH /api/tasks/:id` rejects `{ status: 'Resolved' }` with 403 Forbidden |
 | **Human Sign-off Endpoint** | `POST /api/tasks/:id/verify` | Requires active staff token, checklist verification, and physical inspection notes |
 | **Demo Scenario Labeling** | Explicit metadata tags | All Room 204 simulated messages display `[DEMO SCENARIO (ROOM 204)]` |
-| **Switch Protocol Handshake** | Strict header validation | Generic webhooks classified as `UNVERIFIED_GENERIC_WEBHOOK` |
+| **Switch Agent Authentication** | Bearer API key + official agent endpoints | Unauthenticated or unregistered agent requests are rejected by Switch |
 | **Durable Atomic Writes** | Safe write with exit check | All mutating endpoints return HTTP 500 on disk write failure |
 
 ### Staff Directory & Security PINs (For Reviewers & Judges)
@@ -218,6 +223,8 @@ npm install
 # Start development server (Port 3000)
 npm run dev
 ```
+
+For a real Switch connection, set the four `SWITCH_*` variables listed in `.env.example` using a registered agent and room from Switch Console. The app runs locally without these values, but will report Switch as `NOT_CONFIGURED`.
 
 ### Running Automated Security & Operations Tests
 ```bash
@@ -249,4 +256,4 @@ When presenting this application to judges or stakeholders:
 3. **Verify Physical Completion (Principle #8):** Click *"Sign Off"* on a task chip in the chat feed. Demonstrate that general updates cannot resolve a physical task without staff PIN authentication, in-suite checklist confirmation, and authorized sign-off.
 4. **Interactive Natural Language Inquiry:** Post a message as Front Desk: *"What is the status of Suite 412?"* and watch Central Operations AI query live state via Gemini AI and reply in real time.
 5. **Demonstrate Missing-Room Safeguard:** In **Guest Requests**, click the *"Emergency Service Failure with Missing Room Number"* preset. Observe how Central AI flags `detectedRoom: null` and refuses to guess, prompting the Reception Agent to ask the guest for suite confirmation.
-6. **Test Switch Integration:** In **Settings**, test a webhook endpoint and inspect how the system distinguishes authentic Switch protocol handshakes from unverified generic webhooks.
+6. **Test Switch Integration:** In **Settings**, verify the Agent Bridge URL and agent API key, send a real test message to the configured room, and confirm the inbound SSE room stream is active.

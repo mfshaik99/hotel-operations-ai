@@ -233,14 +233,15 @@ export interface SwitchConfig {
     | 'CONNECTED'
     | 'CONNECTION_FAILED'
     | 'UNVERIFIED_GENERIC_WEBHOOK';
-  roomWebhookUrl: string;
+  agentBaseUrl: string; // Switch Agent Bridge base URL (not a webhook URL)
+  agentId: string;
   roomId: string;
-  apiKey: string; // Redacted when sent over wire
+  apiKey: string; // Redacted in API responses
   channelTarget: string;
   lastTestedAt?: string;
   lastTestStatus?: 'SUCCESS' | 'FAILED' | 'NOT_TESTED';
   lastErrorMessage?: string;
-  protocolHandshakeVerified?: boolean;
+  agentApiVerified?: boolean;
   autoRelayTasks: boolean;
   totalDelivered: number;
 }

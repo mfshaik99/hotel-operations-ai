@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import { WebSocketServer, WebSocket } from 'ws';
+import { SwitchAgentClient, SwitchRoomMessage } from './src/lib/switch-agent-client';
 import {
   Task,
   GuestRequest,
@@ -173,9 +174,9 @@ function redactSwitchConfig(config: SwitchConfig): SwitchConfig {
   };
 }
 
-function isValidWebhookUrl(rawUrl: string): { valid: boolean; error?: string } {
+function isValidSwitchBridgeUrl(rawUrl: string): { valid: boolean; error?: string } {
   if (!rawUrl || typeof rawUrl !== 'string') {
-    return { valid: false, error: 'Webhook URL cannot be empty' };
+    return { valid: false, error: 'Switch Agent Bridge URL cannot be empty' };
   }
   try {
     const parsed = new URL(rawUrl);
@@ -587,15 +588,16 @@ function getInitialDatabase(): DatabaseSchema {
   ];
 
   const initialSwitchConfig: SwitchConfig = {
-    status: process.env.SWITCH_ROOM_WEBHOOK_URL ? 'DISCONNECTED' : 'NOT_CONFIGURED',
-    roomWebhookUrl: process.env.SWITCH_ROOM_WEBHOOK_URL || '',
-    roomId: process.env.SWITCH_ROOM_ID || 'hotel-operations-room',
-    apiKey: process.env.SWITCH_API_KEY || '',
+    status: process.env.SWITCH_AGENT_BASE_URL && process.env.SWITCH_AGENT_ID && process.env.SWITCH_AGENT_API_KEY ? 'DISCONNECTED' : 'NOT_CONFIGURED',
+    agentBaseUrl: process.env.SWITCH_AGENT_BASE_URL || '',
+    agentId: process.env.SWITCH_AGENT_ID || '',
+    roomId: process.env.SWITCH_ROOM_ID || '',
+    apiKey: process.env.SWITCH_AGENT_API_KEY || '',
     channelTarget: '#hotel-ops-central',
     autoRelayTasks: true,
     totalDelivered: 0,
     lastTestStatus: 'NOT_TESTED',
-    protocolHandshakeVerified: false,
+    agentApiVerified: false,
   };
 
   return {
@@ -641,6 +643,20 @@ function loadDatabase(): DatabaseSchema {
 }
 
 let db: DatabaseSchema = loadDatabase();
+
+// Migrate older demo webhook settings without treating their mock handshake as a real connection.
+db.switchConfig.agentId = process.env.SWITCH_AGENT_ID || '';
+db.switchConfig.agentBaseUrl = process.env.SWITCH_AGENT_BASE_URL || '';
+db.switchConfig.apiKey = process.env.SWITCH_AGENT_API_KEY || '';
+db.switchConfig.roomId = process.env.SWITCH_ROOM_ID || '';
+if (db.switchConfig.agentBaseUrl.includes('/api/switch/mock-room')) {
+  db.switchConfig.agentBaseUrl = process.env.SWITCH_AGENT_BASE_URL || '';
+}
+db.switchConfig.status =
+  db.switchConfig.agentBaseUrl && db.switchConfig.agentId && db.switchConfig.apiKey && db.switchConfig.roomId
+    ? 'DISCONNECTED'
+    : 'NOT_CONFIGURED';
+db.switchConfig.agentApiVerified = false;
 
 // ---------------------------------------------------------------------------
 // Real-Time Messaging Architecture: WebSocket & SSE Broadcast Hub
@@ -710,7 +726,7 @@ function postInternalAgentMessage(messageData: {
 }
 
 // ---------------------------------------------------------------------------
-// Authentic SandboxAQ Switch Protocol Verification & Dispatcher
+// Official SandboxAQ Switch Agent Protocol: HTTP outbound, SSE inbound
 // ---------------------------------------------------------------------------
 async function forwardToSwitchRoom(
   config: SwitchConfig,
@@ -722,121 +738,124 @@ async function forwardToSwitchRoom(
     taskId?: string;
   }
 ): Promise<{ success: boolean; error?: string; status: SwitchConfig['status'] }> {
-  if (!config.roomWebhookUrl || config.status === 'NOT_CONFIGURED') {
-    return { success: false, error: 'Switch room webhook URL is not configured', status: 'NOT_CONFIGURED' };
+  if (!config.agentBaseUrl || !config.agentId || !config.apiKey || !config.roomId) {
+    config.status = 'NOT_CONFIGURED';
+    config.agentApiVerified = false;
+    return {
+      success: false,
+      error: 'Configure the Switch Agent Bridge URL, agent ID, API key, and room ID first.',
+      status: 'NOT_CONFIGURED',
+    };
   }
 
-  // Permit local mock-room for test suites and evaluation
-  const isMockEndpoint = config.roomWebhookUrl.includes('/api/switch/mock-room');
-  if (!isMockEndpoint) {
-    const urlCheck = isValidWebhookUrl(config.roomWebhookUrl);
-    if (!urlCheck.valid) {
-      config.status = 'CONNECTION_FAILED';
-      config.lastTestStatus = 'FAILED';
-      config.lastErrorMessage = urlCheck.error;
-      saveDatabase(db);
-      return { success: false, error: urlCheck.error, status: 'CONNECTION_FAILED' };
-    }
+  const urlCheck = isValidSwitchBridgeUrl(config.agentBaseUrl);
+  if (!urlCheck.valid) {
+    config.status = 'CONNECTION_FAILED';
+    config.agentApiVerified = false;
+    config.lastTestStatus = 'FAILED';
+    config.lastErrorMessage = urlCheck.error;
+    saveDatabase(db);
+    return { success: false, error: urlCheck.error, status: 'CONNECTION_FAILED' };
   }
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4500);
-
-    const challengeNonce = `switch_nonce_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
-    const body = {
-      protocol: 'switch.v1',
-      type: payload.eventType === 'PROBE_TEST' ? 'switch.handshake' : 'room.message',
-      challenge: challengeNonce,
+    const client = new SwitchAgentClient({
+      baseUrl: config.agentBaseUrl,
+      agentId: config.agentId,
+      apiKey: config.apiKey,
       roomId: config.roomId,
-      channel: config.channelTarget,
-      sender: payload.sender,
-      eventType: payload.eventType,
-      content: payload.content,
-      roomNumber: payload.room,
-      taskId: payload.taskId,
-      timestamp: new Date().toISOString(),
-    };
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/vnd.switch.v1+json, application/json',
-      'User-Agent': 'HotelOperationsAI-SwitchClient/1.4 (SandboxAQ Switch Protocol)',
-      'X-Switch-Protocol-Version': '1.0',
-      'X-Switch-Room-Id': config.roomId,
-      'X-Switch-Agent-Id': 'hotel-central-ops',
-    };
-    if (config.apiKey && config.apiKey !== '••••••••') {
-      headers['Authorization'] = `Bearer ${config.apiKey}`;
-    }
-
-    const response = await fetch(config.roomWebhookUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-      signal: controller.signal,
     });
-    clearTimeout(timeout);
+    const message = [
+      `[${payload.eventType}]`,
+      `From: ${payload.sender.name} (${payload.sender.role})`,
+      payload.room ? `Hotel room: ${payload.room}` : '',
+      payload.taskId ? `Task: ${payload.taskId}` : '',
+      payload.content,
+    ].filter(Boolean).join('\\n');
 
-    // Protocol Verification: Inspect response headers and body for authentic Switch signature
-    const roomStatusHeader = response.headers.get('x-switch-room-status');
-    const hasSwitchHeader =
-      Boolean(roomStatusHeader && roomStatusHeader.toUpperCase() === 'ACTIVE') ||
-      response.headers.has('x-switch-acknowledge') ||
-      Boolean(response.headers.get('content-type')?.includes('application/vnd.switch.v1+json'));
-
-    let responseJson: any = null;
-    try {
-      responseJson = await response.json();
-    } catch (e) {}
-
-    const hasSwitchChallengeAck = Boolean(
-      responseJson &&
-      responseJson.protocol === 'switch.v1' &&
-      (responseJson.type === 'switch.handshake.ack' || responseJson.challenge === challengeNonce || responseJson.status === 'CONNECTED')
-    );
-
-    if (response.ok && (hasSwitchHeader || hasSwitchChallengeAck)) {
-      config.totalDelivered += 1;
-      config.status = 'CONNECTED';
-      config.protocolHandshakeVerified = true;
-      config.lastTestedAt = new Date().toISOString();
-      config.lastTestStatus = 'SUCCESS';
-      config.lastErrorMessage = undefined;
-      saveDatabase(db);
-      return { success: true, status: 'CONNECTED' };
-    } else if (response.ok && !hasSwitchHeader && !hasSwitchChallengeAck) {
-      // The endpoint returned HTTP 200, but did not implement the Switch protocol
-      config.status = 'UNVERIFIED_GENERIC_WEBHOOK';
-      config.protocolHandshakeVerified = false;
-      config.lastTestedAt = new Date().toISOString();
-      config.lastTestStatus = 'FAILED';
-      config.lastErrorMessage =
-        'Endpoint returned generic HTTP 200, but failed SandboxAQ Switch protocol handshake (missing X-Switch-Room-Status: ACTIVE header or Switch challenge acknowledgement). Genuine Switch connection cannot be certified.';
-      saveDatabase(db);
-      return {
-        success: false,
-        error: config.lastErrorMessage,
-        status: 'UNVERIFIED_GENERIC_WEBHOOK',
-      };
-    } else {
-      config.status = 'DISCONNECTED';
-      config.protocolHandshakeVerified = false;
-      config.lastTestedAt = new Date().toISOString();
-      config.lastTestStatus = 'FAILED';
-      config.lastErrorMessage = `Switch responded with HTTP ${response.status}: ${response.statusText}`;
-      saveDatabase(db);
-      return { success: false, error: config.lastErrorMessage, status: 'DISCONNECTED' };
-    }
+    const probe = await client.probe();
+    if (!probe.ok) throw new Error(probe.detail);
+    await client.sendMessage(message);
+    config.totalDelivered += 1;
+    config.status = config.status === 'CONNECTED' ? 'CONNECTED' : 'DISCONNECTED';
+    config.agentApiVerified = true;
+    config.lastTestedAt = new Date().toISOString();
+    config.lastTestStatus = 'SUCCESS';
+    config.lastErrorMessage = undefined;
+    saveDatabase(db);
+    return { success: true, status: 'CONNECTED' };
   } catch (err: any) {
-    config.status = 'CONNECTION_FAILED';
-    config.protocolHandshakeVerified = false;
+    config.status = 'DISCONNECTED';
+    config.agentApiVerified = false;
     config.lastTestedAt = new Date().toISOString();
     config.lastTestStatus = 'FAILED';
-    config.lastErrorMessage = err?.message || 'Network unreachable or connection timed out';
+    config.lastErrorMessage = err?.message || 'Switch Agent API request failed.';
     saveDatabase(db);
-    return { success: false, error: config.lastErrorMessage, status: 'CONNECTION_FAILED' };
+    return { success: false, error: config.lastErrorMessage, status: 'DISCONNECTED' };
   }
+}
+
+let switchStreamClient: SwitchAgentClient | null = null;
+
+function startSwitchInboundStream(): void {
+  switchStreamClient?.stop();
+  switchStreamClient = null;
+
+  const config = db.switchConfig;
+  if (!config.agentBaseUrl || !config.agentId || !config.apiKey || !config.roomId) return;
+
+  const client = new SwitchAgentClient({
+    baseUrl: config.agentBaseUrl,
+    agentId: config.agentId,
+    apiKey: config.apiKey,
+    roomId: config.roomId,
+  });
+  switchStreamClient = client;
+
+  void client.listen(
+    (event: SwitchRoomMessage) => {
+      const messageId = event.messageId || `switch-${event.sequence}`;
+      if (db.messages.some((message) => message.id === messageId)) return;
+
+      const senderType = event.senderKind === 'platform' ? 'HUMAN' : 'AI_AGENT';
+      const inboundMsg: SwitchMessage = {
+        id: messageId,
+        sender: event.sender || 'Switch teammate',
+        avatarRole: senderType === 'HUMAN' ? 'Hotel teammate' : 'External AI agent',
+        senderType,
+        department: 'Management',
+        content: event.content,
+        badge: 'INFO',
+        timestamp: event.timestamp
+          ? new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        room: event.roomId,
+        channel: '#operations-general',
+        sourceType: 'SWITCH_ROOM',
+        deliveryState: 'DELIVERED',
+      };
+
+      db.messages.push(inboundMsg);
+      if (!saveDatabase(db)) {
+        db.messages.pop();
+        return;
+      }
+      broadcastRealtime('chat:message', inboundMsg);
+
+      if (senderType === 'HUMAN') {
+        executeDynamicAgentCollaboration(inboundMsg).catch((err) => {
+          console.error('[Switch inbound] Agent coordination failed:', err);
+        });
+      }
+    },
+    (status, detail) => {
+      db.switchConfig.status = status;
+      db.switchConfig.agentApiVerified = status === 'CONNECTED';
+      if (detail) db.switchConfig.lastErrorMessage = detail;
+      if (status === 'CONNECTED') db.switchConfig.lastErrorMessage = undefined;
+      saveDatabase(db);
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -2073,49 +2092,23 @@ async function startServer() {
     res.json({ success: true, agents: updatedAgents });
   });
 
-  // 14. Switch Configuration & Real Connection Verification (Secret Redacted)
+  // 14. Read-only Switch Agent configuration (secret redacted)
   app.get('/api/switch/config', (_req, res) => {
     res.json({ success: true, config: redactSwitchConfig(db.switchConfig) });
   });
 
-  app.post('/api/switch/config', (req, res) => {
-    const { roomWebhookUrl, roomId, apiKey: newKey, channelTarget, autoRelayTasks } = req.body;
-
-    if (roomWebhookUrl !== undefined) {
-      const trimmed = roomWebhookUrl.trim();
-      if (trimmed && !trimmed.includes('/api/switch/mock-room')) {
-        const urlValidation = isValidWebhookUrl(trimmed);
-        if (!urlValidation.valid) {
-          return res.status(400).json({ error: urlValidation.error });
-        }
-      }
-      db.switchConfig.roomWebhookUrl = trimmed;
-    }
-    if (roomId !== undefined) db.switchConfig.roomId = roomId.trim();
-    if (channelTarget !== undefined) db.switchConfig.channelTarget = channelTarget.trim();
-    if (autoRelayTasks !== undefined) db.switchConfig.autoRelayTasks = Boolean(autoRelayTasks);
-    if (newKey !== undefined && newKey !== '••••••••') db.switchConfig.apiKey = newKey.trim();
-
-    if (!db.switchConfig.roomWebhookUrl) {
-      db.switchConfig.status = 'NOT_CONFIGURED';
-      db.switchConfig.protocolHandshakeVerified = false;
-    } else {
-      db.switchConfig.status = 'DISCONNECTED';
-      db.switchConfig.protocolHandshakeVerified = false;
-    }
-
-    if (!saveDatabase(db)) {
-      return res.status(500).json({ error: 'Persistence failure: unable to commit Switch configuration.' });
-    }
-
-    res.json({ success: true, config: redactSwitchConfig(db.switchConfig) });
+  app.post('/api/switch/config', (_req, res) => {
+    res.status(405).json({
+      success: false,
+      error: 'Switch credentials are read only at runtime. Configure SWITCH_AGENT_BASE_URL, SWITCH_AGENT_ID, SWITCH_AGENT_API_KEY, and SWITCH_ROOM_ID as deployment secrets or environment variables.',
+    });
   });
 
-  // 15. Genuine Switch Protocol Verification Test Ping
+  // 15. Verify credentials and deliver a real message through the Switch Agent API
   app.post('/api/switch/test', async (_req, res) => {
-    if (!db.switchConfig.roomWebhookUrl) {
+    if (!db.switchConfig.agentBaseUrl || !db.switchConfig.agentId || !db.switchConfig.apiKey || !db.switchConfig.roomId) {
       return res.status(400).json({
-        error: 'Cannot test Switch connection: No room webhook URL configured.',
+        error: 'Cannot test Switch connection: complete the Bridge URL, agent ID, API key, and room ID first.',
       });
     }
 
@@ -2126,172 +2119,23 @@ async function startServer() {
       room: 'HQ',
     });
 
+    if (testResult.success) startSwitchInboundStream();
     res.json({
       success: testResult.success,
       status: db.switchConfig.status,
-      protocolHandshakeVerified: db.switchConfig.protocolHandshakeVerified,
+      agentApiVerified: db.switchConfig.agentApiVerified,
       lastTestedAt: db.switchConfig.lastTestedAt,
       message: testResult.success
-        ? 'Successfully connected to verified SandboxAQ Switch room.'
+        ? 'Authenticated with the Switch Agent API and delivered a test message to the configured room.'
         : db.switchConfig.lastErrorMessage,
     });
   });
 
-  // 15a. SandboxAQ Switch Agent Manifest & Protocol Capabilities
-  app.get('/api/switch/manifest', (_req, res) => {
-    res.setHeader('Content-Type', 'application/vnd.switch.v1+json');
-    res.json({
-      protocol: 'switch.v1',
-      version: '1.0.0',
-      systemName: 'Hotel Operations AI Multi-Agent Mesh',
-      hotel: 'The Grand Luminary Hotel & Residences',
-      supportedEventTypes: [
-        'switch.handshake',
-        'switch.handshake.ack',
-        'room.message',
-        'task.handoff',
-        'task.status_update',
-        'telemetry.sla_breach',
-      ],
-      registeredAgents: [
-        {
-          id: 'agent-central',
-          name: 'Central Operations AI',
-          role: 'Orchestrator & GM Brain',
-          department: 'Management',
-          capabilities: ['orchestration', 'task_decomposition', 'sla_monitoring', 'vip_protection'],
-        },
-        {
-          id: 'agent-maintenance',
-          name: 'Maintenance Agent',
-          role: 'Physical Plant & HVAC Diagnostics',
-          department: 'Maintenance',
-          capabilities: ['chilled_water_hvac', 'rfid_locks', 'plumbing_diagnostics'],
-        },
-        {
-          id: 'agent-housekeeping',
-          name: 'Housekeeping Agent',
-          role: 'Linen & Sanitary Standards',
-          department: 'Housekeeping',
-          capabilities: ['suite_turnover', 'amenity_replenishment', 'sanitary_audits'],
-        },
-        {
-          id: 'agent-reception',
-          name: 'Reception Agent',
-          role: 'Front Office Intelligence',
-          department: 'Reception',
-          capabilities: ['vip_arrival', 'guest_concierge', 'folio_audits'],
-        },
-        {
-          id: 'agent-management',
-          name: 'Management Agent',
-          role: 'Executive Escalations & Recovery',
-          department: 'Management',
-          capabilities: ['sla_overrides', 'guest_recovery', 'department_authorization'],
-        },
-      ],
-    });
-  });
-
-  // 15b. SandboxAQ Switch Protocol Challenge-Response Handshake
-  app.post('/api/switch/handshake', (req, res) => {
-    const { protocol, type, challenge, roomId } = req.body;
-
-    if (protocol !== 'switch.v1' || type !== 'switch.handshake') {
-      return res.status(400).json({
-        error: 'Invalid Switch protocol handshake request. Expected protocol: switch.v1, type: switch.handshake.',
-      });
-    }
-
-    if (!challenge || typeof challenge !== 'string') {
-      return res.status(400).json({ error: 'Missing handshake challenge nonce.' });
-    }
-
-    res.setHeader('X-Switch-Protocol-Version', '1.0');
-    res.setHeader('X-Switch-Room-Id', roomId || 'hotel-operations-room');
-    res.setHeader('X-Switch-Room-Status', 'ACTIVE');
-    res.setHeader('Content-Type', 'application/vnd.switch.v1+json');
-
-    res.json({
-      protocol: 'switch.v1',
-      type: 'switch.handshake.ack',
-      challengeEcho: challenge,
-      roomId: roomId || 'hotel-operations-room',
-      status: 'ACTIVE',
-      agentsRegistered: 5,
-      timestamp: Date.now(),
-    });
-  });
-
-  // 15c. Reference SandboxAQ Switch Compliant Mock-Room Endpoint
-  app.post('/api/switch/mock-room', (req, res) => {
-    const body = req.body || {};
-    const challenge = body.challenge;
-
-    res.setHeader('X-Switch-Protocol-Version', '1.0');
-    res.setHeader('X-Switch-Room-Id', body.roomId || 'hotel-operations-room');
-    res.setHeader('X-Switch-Room-Status', 'ACTIVE');
-    res.setHeader('Content-Type', 'application/vnd.switch.v1+json');
-
-    if (body.type === 'switch.handshake') {
-      return res.json({
-        protocol: 'switch.v1',
-        type: 'switch.handshake.ack',
-        challengeEcho: challenge,
-        roomId: body.roomId || 'hotel-operations-room',
-        status: 'ACTIVE',
-        activeMembers: 9,
-        timestamp: Date.now(),
-      });
-    }
-
-    // Default room message ingestion response
-    return res.json({
-      protocol: 'switch.v1',
-      type: 'room.message.ack',
-      delivered: true,
-      roomId: body.roomId || 'hotel-operations-room',
-      eventId: `evt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      status: 'ACTIVE',
-      timestamp: Date.now(),
-    });
-  });
-
-  // 15d. Inbound Event Ingestion from Connected Switch Room
-  app.post('/api/switch/events', async (req, res) => {
-    const { protocol, type, eventType, sender, content, room, channel } = req.body;
-
-    if (protocol !== 'switch.v1') {
-      return res.status(400).json({ error: 'Protocol mismatch: expected switch.v1' });
-    }
-
-    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const inboundMsg: SwitchMessage = {
-      id: `switch-evt-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      sender: sender?.name || 'Switch Teammate',
-      avatarRole: sender?.role || 'Remote Agent',
-      senderType: 'HUMAN',
-      department: 'Management',
-      content: content || `[Switch Event: ${type || eventType || 'room.message'}]`,
-      badge: 'INFO',
-      timestamp: timeStr,
-      room,
-      channel: channel || '#operations-general',
-      sourceType: 'SWITCH_ROOM',
-      deliveryState: 'DELIVERED',
-    };
-
-    db.messages.push(inboundMsg);
-    saveDatabase(db);
-    broadcastRealtime('chat:message', inboundMsg);
-
-    res.setHeader('X-Switch-Room-Status', 'ACTIVE');
-    res.setHeader('Content-Type', 'application/vnd.switch.v1+json');
-    res.json({ success: true, eventId: inboundMsg.id });
-
-    // Trigger autonomous coordination if relevant
-    executeDynamicAgentCollaboration(inboundMsg).catch((err) => {
-      console.error('[Switch Inbound] Agent coordination error:', err);
+  // Legacy mock handshake routes are deliberately disabled. They cannot authenticate a real Switch agent.
+  app.all(['/api/switch/manifest', '/api/switch/handshake', '/api/switch/mock-room', '/api/switch/events'], (_req, res) => {
+    res.status(410).json({
+      success: false,
+      error: 'This legacy mock endpoint has been retired. Use the official Switch Agent Protocol configuration.',
     });
   });
 
@@ -2518,6 +2362,7 @@ CRITICAL INSTRUCTIONS:
   });
 
   server.listen(PORT, '0.0.0.0', () => {
+    startSwitchInboundStream();
     console.log(`[Hotel Operations AI] Server running at http://0.0.0.0:${PORT}`);
     console.log(`[Storage] Database mounted at: ${DB_PATH}`);
     console.log(`[Realtime] Native WebSockets active on ws://0.0.0.0:${PORT}/ws & SSE on /api/chat/stream`);
