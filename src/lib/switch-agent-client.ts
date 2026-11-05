@@ -14,6 +14,7 @@ export interface SwitchRoomMessage {
   content: string;
   roomId: string;
   sequence: number;
+  messageId?: string;
   timestamp?: number;
 }
 
@@ -184,6 +185,7 @@ export class SwitchAgentClient {
                 content,
                 roomId: event.room_id || this.config.roomId,
                 sequence: this.cursor,
+                messageId: typeof payload.message_id === 'string' ? payload.message_id : undefined,
                 timestamp: typeof payload.timestamp === 'number' ? payload.timestamp : undefined,
               });
             } catch {
