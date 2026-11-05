@@ -65,7 +65,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       } else {
         setTestResult({
           success: false,
-          message: data.error || 'Switch endpoint failed or was unreachable',
+          message: data.message || data.error || 'Switch Agent API request failed',
           timestamp: new Date().toLocaleTimeString(),
         });
         await onRefreshConfig();
