@@ -18,7 +18,7 @@ Hotel operations suffer from fragmentation: guest inquiries received via telepho
 5. **Room 204 End-to-End Operational Workflow:** Demonstrates a real guest request (AC not working + extra towels) decomposing into tasks, dispatching to technicians, updating progress in chat, and awaiting human sign-off.
 6. **10-Stage Reliable Task Lifecycle:** Tracks cases from `REQUEST_RECEIVED` through `COMPLETION_PENDING_CONFIRMATION` to authorized `RESOLVED`.
 7. **Human-in-the-Loop Completion Gate (Principle #8):** Physical tasks cannot be marked `Resolved` by AI; an authorized employee must confirm execution with their badge/name and completion notes.
-8. **Genuine Switch Integration:** Multi-agent collaboration room connecting AI teammates and human staff through SandboxAQ's Switch protocol, through the official Switch Agent Protocol (authenticated HTTP message delivery and an inbound SSE event stream).
+8. **Genuine Switch Integration:** Multi-agent collaboration room connecting AI teammates and human staff through SandboxAQ's official Switch Agent Protocol (authenticated HTTP message delivery and an inbound SSE event stream).
 9. **Durable File-Backed Persistence:** Atomic JSON database (`/data/hotel_operations_db.json`) preserving task states, immutable audit trails, and team chat logs across browser refreshes.
 
 ---
@@ -125,7 +125,7 @@ Tasks strictly progress through an auditable lifecycle:
 ## 5. Security & Data Integrity
 
 - **Secret Redaction:** Gemini API keys and Switch bearer tokens are redacted (`••••••••`) from all client-facing API responses.
-- **SSRF Protection:** Switch room webhook URLs are validated against private IP blocks (127.0.0.1, 10.x, 192.168.x, 172.16-31.x) and cloud metadata services (169.254.169.254).
+- **SSRF Protection:** Switch Agent Bridge URLs are validated against private IP blocks (127.0.0.1, 10.x, 192.168.x, 172.16-31.x) and cloud metadata services (169.254.169.254).
 - **Atomic File Writes:** Database writes write to a temporary file (`.tmp`) before atomic rename, preventing file corruption under concurrent operations.
 - **Mandatory Staff Sign-Off:** Task verification requires explicit `staffName` and `badgeId` parameters.
 
@@ -150,7 +150,7 @@ The UI is designed according to Linear and Stripe-tier SaaS standards:
 
 ## 7. Switch Integration Protocol
 
-SandboxAQ's Switch enables autonomous agents to collaborate within shared team spaces ("Switch Rooms"). Hotel Operations AI implements both a local high-performance agent mesh and a real HTTP webhook dispatcher.
+SandboxAQ's Switch enables autonomous agents to collaborate within shared team spaces ("Switch Rooms"). Hotel Operations AI connects as a registered Switch agent using the official Agent Bridge API.
 
 ### Official Switch Agent Protocol
 
