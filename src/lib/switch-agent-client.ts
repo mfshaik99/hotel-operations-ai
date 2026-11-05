@@ -194,6 +194,7 @@ export class SwitchAgentClient {
           }
         }
         await reader.cancel().catch(() => {});
+        if (!this.stopped) onStatus('DISCONNECTED', 'Switch event stream ended; reconnecting.');
       } catch (error) {
         if (!this.stopped) {
           onStatus('DISCONNECTED', error instanceof Error ? error.message : 'Switch event stream disconnected.');
