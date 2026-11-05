@@ -644,6 +644,20 @@ function loadDatabase(): DatabaseSchema {
 
 let db: DatabaseSchema = loadDatabase();
 
+// Migrate older demo webhook settings without treating their mock handshake as a real connection.
+db.switchConfig.agentId = db.switchConfig.agentId || process.env.SWITCH_AGENT_ID || '';
+db.switchConfig.roomWebhookUrl = db.switchConfig.roomWebhookUrl || process.env.SWITCH_AGENT_BASE_URL || '';
+db.switchConfig.apiKey = db.switchConfig.apiKey || process.env.SWITCH_AGENT_API_KEY || '';
+db.switchConfig.roomId = db.switchConfig.roomId || process.env.SWITCH_ROOM_ID || '';
+if (db.switchConfig.roomWebhookUrl.includes('/api/switch/mock-room')) {
+  db.switchConfig.roomWebhookUrl = process.env.SWITCH_AGENT_BASE_URL || '';
+}
+db.switchConfig.status =
+  db.switchConfig.roomWebhookUrl && db.switchConfig.agentId && db.switchConfig.apiKey && db.switchConfig.roomId
+    ? 'DISCONNECTED'
+    : 'NOT_CONFIGURED';
+db.switchConfig.protocolHandshakeVerified = false;
+
 // ---------------------------------------------------------------------------
 // Real-Time Messaging Architecture: WebSocket & SSE Broadcast Hub
 // ---------------------------------------------------------------------------
@@ -759,6 +773,8 @@ async function forwardToSwitchRoom(
       payload.content,
     ].filter(Boolean).join('\\n');
 
+    const probe = await client.probe();
+    if (!probe.ok) throw new Error(probe.detail);
     await client.sendMessage(message);
     config.totalDelivered += 1;
     config.status = 'CONNECTED';
@@ -2118,7 +2134,7 @@ async function startServer() {
 
   // 15. Verify credentials and deliver a real message through the Switch Agent API
   app.post('/api/switch/test', async (_req, res) => {
-    if (!db.switchConfig.roomWebhookUrl) {
+    if (!db.switchConfig.roomWebhookUrl || !db.switchConfig.agentId || !db.switchConfig.apiKey || !db.switchConfig.roomId) {
       return res.status(400).json({
         error: 'Cannot test Switch connection: No room webhook URL configured.',
       });
