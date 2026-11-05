@@ -777,7 +777,7 @@ async function forwardToSwitchRoom(
     if (!probe.ok) throw new Error(probe.detail);
     await client.sendMessage(message);
     config.totalDelivered += 1;
-    config.status = 'CONNECTED';
+    config.status = config.status === 'CONNECTED' ? 'CONNECTED' : 'DISCONNECTED';
     config.agentApiVerified = true;
     config.lastTestedAt = new Date().toISOString();
     config.lastTestStatus = 'SUCCESS';
