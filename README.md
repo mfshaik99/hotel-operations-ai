@@ -163,7 +163,7 @@ The integration follows the published Switch Agent Protocol:
 - **Connection liveness:** `POST /agents/{agent_id}/connection/beat` every two seconds, using the same connection ID and latest event cursor.
 - **Credential check:** `GET /agents/{agent_id}/ops` verifies that the configured agent API key is accepted by the bridge.
 
-The Bridge Base URL must point to the **Agent Bridge**, not the operator Gateway URL. The agent must already exist in Switch and be a member of the selected room. Create/configure it in Switch Console, then supply its agent ID and API key here or through environment variables.
+The Bridge Base URL must point to the **Agent Bridge**, not the operator Gateway URL. The agent must already exist in Switch and be a member of the selected room. Create/configure it in Switch Console, then set its agent ID and API key as server environment variables.
 
 ### Required configuration
 
@@ -174,7 +174,7 @@ The Bridge Base URL must point to the **Agent Bridge**, not the operator Gateway
 | `SWITCH_AGENT_API_KEY` | API key generated for that agent |
 | `SWITCH_ROOM_ID` | Existing room ID the agent belongs to |
 
-Never commit real credentials. The settings API redacts the API key in responses; the server-side JSON database stores settings locally, so prefer deployment secrets or environment variables for hosted deployments.
+Never commit real credentials. Switch connection values are read only from environment variables; the API key is not written to the application JSON database or exposed by the settings API. Use deployment secrets for hosted deployments.
 
 ### Connection states
 
