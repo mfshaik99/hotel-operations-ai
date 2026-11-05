@@ -2136,7 +2136,7 @@ async function startServer() {
   app.post('/api/switch/test', async (_req, res) => {
     if (!db.switchConfig.roomWebhookUrl || !db.switchConfig.agentId || !db.switchConfig.apiKey || !db.switchConfig.roomId) {
       return res.status(400).json({
-        error: 'Cannot test Switch connection: No room webhook URL configured.',
+        error: 'Cannot test Switch connection: complete the Bridge URL, agent ID, API key, and room ID first.',
       });
     }
 
