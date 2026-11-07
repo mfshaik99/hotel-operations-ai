@@ -16,6 +16,13 @@ import {
   Layers,
   Activity,
   Zap,
+  ConciergeBell,
+  Coffee,
+  Utensils,
+  Package,
+  UserRoundCog,
+  Wallet,
+  TrendingUp,
 } from 'lucide-react';
 import { AgentProfile, Department, Task } from '../types';
 
@@ -56,6 +63,20 @@ export const AgentManagementView: React.FC<AgentManagementViewProps> = ({
         return BedDouble;
       case 'Maintenance':
         return Wrench;
+      case 'Guest Experience':
+        return ConciergeBell;
+      case 'Room Service':
+        return Coffee;
+      case 'Food & Beverage':
+        return Utensils;
+      case 'Inventory & Procurement':
+        return Package;
+      case 'Staff Management':
+        return UserRoundCog;
+      case 'Finance':
+        return Wallet;
+      case 'Revenue':
+        return TrendingUp;
       case 'Management':
       default:
         return ShieldCheck;
@@ -72,7 +93,7 @@ export const AgentManagementView: React.FC<AgentManagementViewProps> = ({
               <Users className="w-3.5 h-3.5" />
               SPECIALIZED MULTI-AGENT ARCHITECTURE
             </span>
-            <span className="text-xs text-zinc-500 font-mono">5 Independent Domain Agents</span>
+            <span className="text-xs text-zinc-500 font-mono">{agents.length} Specialized AI Agents</span>
           </div>
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
             AI Agent Management & Domain Authorities
@@ -94,7 +115,7 @@ export const AgentManagementView: React.FC<AgentManagementViewProps> = ({
       </div>
 
       {/* Agents Grid (Cards for all 5 Agents) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         {agents.map((agent) => {
           const Icon = getDepartmentIcon(agent.department);
           const isSelected = agent.id === selectedAgentId;
