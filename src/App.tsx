@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
+import { HOTEL_SPECIALIST_AGENTS } from './data/hotelBlueprint';
 import { ExecutiveOverview } from './components/ExecutiveOverview';
 import { GuestRequestsView } from './components/GuestRequestsView';
 import { TaskQueue } from './components/TaskQueue';
@@ -56,7 +57,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('overview');
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [requests, setRequests] = useState<GuestRequest[]>([]);
-  const [agents, setAgents] = useState<AgentProfile[]>(INITIAL_AGENTS);
+  const [agents, setAgents] = useState<AgentProfile[]>([...INITIAL_AGENTS, ...HOTEL_SPECIALIST_AGENTS]);
   const [switchMessages, setSwitchMessages] = useState<SwitchMessage[]>(INITIAL_SWITCH_MESSAGES);
   const [alerts, setAlerts] = useState<OperationalAlert[]>(INITIAL_ALERTS);
   const [switchConfig, setSwitchConfig] = useState<SwitchConfig>(DEFAULT_SWITCH_CONFIG);
@@ -105,7 +106,7 @@ export default function App() {
         setAlerts(alertsRes.value.alerts);
       }
       if (agentsRes.status === 'fulfilled' && agentsRes.value?.agents) {
-        setAgents(agentsRes.value.agents);
+        setAgents([...INITIAL_AGENTS, ...HOTEL_SPECIALIST_AGENTS].map((agent) => ({ ...agent, ...(agentsRes.value.agents.find((saved: AgentProfile) => saved.id === agent.id) || {}) })));
       }
       if (switchRes.status === 'fulfilled' && switchRes.value?.config) {
         setSwitchConfig(switchRes.value.config);
