@@ -1,4 +1,15 @@
-export type Department = 'Reception' | 'Housekeeping' | 'Maintenance' | 'Management';
+export type Department =
+  | 'Reception'
+  | 'Guest Experience'
+  | 'Housekeeping'
+  | 'Room Service'
+  | 'Food & Beverage'
+  | 'Maintenance'
+  | 'Inventory & Procurement'
+  | 'Staff Management'
+  | 'Finance'
+  | 'Revenue'
+  | 'Management';
 
 export type Priority = 'Low' | 'Normal' | 'High' | 'Urgent' | 'Critical';
 
