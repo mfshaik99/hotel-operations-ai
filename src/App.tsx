@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
+import { HOTEL_SPECIALIST_AGENTS } from './data/hotelBlueprint';
 import { ExecutiveOverview } from './components/ExecutiveOverview';
 import { GuestRequestsView } from './components/GuestRequestsView';
 import { TaskQueue } from './components/TaskQueue';
